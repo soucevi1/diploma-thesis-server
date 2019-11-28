@@ -1,89 +1,139 @@
-// https://stackoverflow.com/questions/15349987/stream-live-android-audio-to-server
+
 package com.company;
 
-import java.io.ByteArrayInputStream;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.util.Arrays;
-
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.DataLine;
-import javax.sound.sampled.FloatControl;
-import javax.sound.sampled.SourceDataLine;
+import java.util.Scanner;
 
 class Server {
-
-    AudioInputStream audioInputStream;
-    static AudioInputStream ais;
-    static AudioFormat format;
-    static boolean status = true;
-    static int port = 50005;
-    static int sampleRate = 44100;//16000;//8000;//44100;//44100;
-    static int bufferLen = 26880*20;//960*20;//512*2;
-
-    static DataLine.Info dataLineInfo;
-    static SourceDataLine sourceDataLine;
+    static ReceivingThread thread = new ReceivingThread();
 
     public static void main(String args[]) throws Exception {
 
-        DatagramSocket serverSocket = new DatagramSocket(port);
+        thread.start();
 
+        showHelp();
+
+        Scanner input = new Scanner(System.in);
+
+        boolean status = true;
+
+        while (status) {
+            String option = input.next();
+            switch (option.charAt(0)) {
+                case 'l':
+                    listConnections(thread);
+                    break;
+                case 's':
+                    switchToConnection(option.substring(option.length() - 2), thread);
+                    break;
+                case 'r':
+                    removeConnection(option.substring(option.length() - 2), thread);
+                    break;
+                case 'q':
+                    status = false;
+                    thread.status = false;
+                    break;
+                case 'h':
+                    showHelp();
+                    break;
+                default:
+                    System.out.println("Unknown command: " + option);
+            }
+        }
+        System.out.println("Exiting application");
+    }
+
+    private static void removeConnection(String connection, ReceivingThread t) {
         /**
-         * Formula for lag = (byte_size/sample_rate)*2
-         * Byte size 9728 will produce ~ 0.45 seconds of lag. Voice slightly broken.
-         * Byte size 1400 will produce ~ 0.06 seconds of lag. Voice extremely broken.
-         * Byte size 4000 will produce ~ 0.18 seconds of lag. Voice slightly more broken then 9728.
+         * Method removes the given connection from the thread's list.
          *
-         * SAMPLE: 16000 both (android+server) + BUFFER SIZE: 1024
-         * 44100 + 1024
-         * 44100+862
-         * 8000+512
+         * If the connection was active at the time, it deletes the active
+         * connection of the thread (replaces it with an empty string).
          */
+        if (checkConnection(connection)) {
 
-        byte[] receiveData = new byte[bufferLen];
+            t.connections.remove(connection);
 
-        format = new AudioFormat(sampleRate, 16, 1, true, false);
-
-        dataLineInfo = new DataLine.Info(SourceDataLine.class, format);
-        sourceDataLine = (SourceDataLine) AudioSystem.getLine(dataLineInfo);
-        sourceDataLine.open(format);
-        sourceDataLine.start();
-
-        FloatControl volumeControl = (FloatControl) sourceDataLine.getControl(FloatControl.Type.MASTER_GAIN);
-        volumeControl.setValue(volumeControl.getMaximum());
-
-        while (status == true) {
-            DatagramPacket receivePacket = new DatagramPacket(receiveData, receiveData.length);
-            serverSocket.receive(receivePacket);
-            System.out.println("Received bytes: " + receivePacket.getLength());
-
-            /*ByteArrayInputStream baiss = new ByteArrayInputStream(
-                    receivePacket.getData());
-            ais = new AudioInputStream(baiss, format, receivePacket.getLength());*/
-            //printData(receivePacket.getData());
-            toSpeaker(receivePacket.getData(), receivePacket.getLength());
-            Arrays.fill(receiveData, (byte)0);
+            if (t.activeConnection.equals(connection)) {
+                t.activeConnection = "";
+            }
         }
-        sourceDataLine.drain();
-        sourceDataLine.close();
     }
 
-    public static void printData(byte data[], int length){
-        System.out.print("Received: ");
-        for (byte datum : data) {
-            System.out.print(String.format("%02X", datum));
+    private static boolean checkConnection(String connection) {
+        /**
+         * Check whether the given connection is in a valid format.
+         *
+         * Connection should always be a string looking like this:
+         *     IP:port
+         *
+         * Apart form the format, the validity of the IP address
+         * and the port number is checked as well.
+         *
+         * Inspired by: https://stackoverflow.com/a/30691451/6136143
+         */
+        String[] split_conn = connection.split(":");
+
+        if (split_conn.length != 2) {
+            System.out.println("Connection in wrong format: " + connection + ". Should be: IP:port");
+            return false;
         }
+
+        String ip = split_conn[0];
+        int port = Integer.parseInt(split_conn[1]);
+
+        String pattern = "^((0|1\\d?\\d?|2[0-4]?\\d?|25[0-5]?|[3-9]\\d?)\\.){3}(0|1\\d?\\d?|2[0-4]?\\d?|25[0-5]?|[3-9]\\d?)$";
+        if (!ip.matches(pattern)) {
+            System.out.println("IP address is not valid: " + ip);
+            return false;
+        }
+
+        if (port > 65535 || port < 0) {
+            System.out.println("Invalid port number: " + port);
+            return false;
+        }
+        return true;
+    }
+
+    private static void switchToConnection(String connection, ReceivingThread t) {
+        /**
+         * Switch the active connection of the thread to the one
+         * given as an argument.
+         *
+         * The connection is validated first.
+         */
+        if (checkConnection(connection)) {
+            t.activeConnection = connection;
+        }
+    }
+
+    private static void listConnections(ReceivingThread t) {
+        /**
+         * Print the whole connection list of the thread,
+         * so that the user can choose which one to make active.
+         */
+        System.out.println(t.connections.toString().replace("[", "\n\t["));
+    }
+
+    private static void showHelp() {
+        /**
+         * Show the usage message.
+         */
+        System.out.println("Usage:");
         System.out.println("");
-    }
-
-    public static void toSpeaker(byte soundbytes[], int length) {
-        try {
-            sourceDataLine.write(soundbytes, 0, length);
-        } catch (Exception e) {
-            System.out.println("Not working in speakers...");
-            e.printStackTrace();
-        }
+        System.out.println("l: List all available connections");
+        System.out.println("   This option lists all connection that are known to the server. The server automatically saves a connection to the list when it receives some data from it.");
+        System.out.println("");
+        System.out.println("s <CONNECTION>: Switch to chosen connection");
+        System.out.println("                Make this connection active -- data from this connection will be played on the speaker.");
+        System.out.println("                Example: s 192.168.1.100:12345");
+        System.out.println("");
+        System.out.println("r <CONNECTION>: Remove selected connection");
+        System.out.println("                Once you receive no data from a connection, you can manually remove it from the list.");
+        System.out.println("                Example: r 192.168.1.100:12345");
+        System.out.println("");
+        System.out.println("q: Quit this application.");
+        System.out.println("");
+        System.out.println("h: Show this help");
     }
 }
+
