@@ -3,13 +3,12 @@ package com.company;
 import javax.sound.sampled.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.Arrays;
 import java.util.Set;
 import java.util.TreeSet;
 
-public class ReceivingThread implements Runnable {
+public class ServerThread implements Runnable {
 
     private int port = 50005;
 
@@ -103,7 +102,7 @@ public class ReceivingThread implements Runnable {
      * Start the thread.
      */
     void start() {
-        System.out.println("Starting the receiver thread");
+        System.out.println("[-] Starting the server thread.");
         if (t == null) {
             t = new Thread (this);
             t.start();
@@ -125,7 +124,7 @@ public class ReceivingThread implements Runnable {
     }
 
     /**
-     * Inilialize all object needed to play audio.
+     * Initialize all object needed to play audio.
      * Inspired by: https://stackoverflow.com/questions/15349987/stream-live-android-audio-to-server
      */
     private void initializeAudioPlayer(){
@@ -156,9 +155,12 @@ public class ReceivingThread implements Runnable {
      * @return IP and port as String in format IP:port
      */
     private String getSenderID(DatagramPacket packet){
-        InetAddress addr = packet.getAddress();
+        String addr = packet.getAddress().toString();
+        if(addr.charAt(0) == '/'){
+            addr = addr.substring(1);
+        }
         int port = packet.getPort();
-        return addr.toString() + ":" + port;
+        return addr + ":" + port;
     }
 
     /**
