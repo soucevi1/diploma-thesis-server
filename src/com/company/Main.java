@@ -43,7 +43,7 @@ class Server {
                     System.out.println("Unknown command: " + option);
             }
         }
-        System.out.println("Exiting application");
+        System.out.println("Exiting the application");
     }
 
     /**

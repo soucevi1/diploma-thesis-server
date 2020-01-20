@@ -12,7 +12,7 @@ public class ServerThread implements Runnable {
 
     private int port = 50005;
 
-    boolean status = true;
+    volatile boolean status = true;
 
     Set<String> connections;
     String activeConnection = "";
