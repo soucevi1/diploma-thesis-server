@@ -1,8 +1,11 @@
+// Tento kod je soucast diplomove prace Vyuziti zranitelnosti Janus na operacnim systemu Android
+// Autor: Bc. Vit Soucek
+
+
 package com.company;
 
 import javax.sound.sampled.SourceDataLine;
 import java.io.IOException;
-import java.util.Arrays;
 
 public class ConnectionTask implements Runnable{
 
@@ -12,6 +15,15 @@ public class ConnectionTask implements Runnable{
     private boolean activeConnection;
     private final SourceDataLine sourceDataLine;
 
+    /**
+     * Constructor
+     *
+     * @param conn Current connection
+     * @param receivedData Data to be handled
+     * @param receivedDataLength Length of the data
+     * @param active Is the connection active?
+     * @param sdl SourceDataLine in case the connection is active
+     */
     public ConnectionTask(Connection conn, byte[] receivedData, int receivedDataLength, boolean active, SourceDataLine sdl){
         connection = conn;
         data = receivedData;
@@ -20,6 +32,9 @@ public class ConnectionTask implements Runnable{
         sourceDataLine = sdl;
     }
 
+    /**
+     * Decide what to do with received data and than do it.
+     */
     @Override
     public void run() {
         if (connection.isRecording()) {
