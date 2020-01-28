@@ -11,10 +11,12 @@ import java.util.Scanner;
 
 class Server {
     private static ServerThread thread;
+    static int maxMemorySize = 100;
+    static int maxConnectionCount = 10;
 
     /**
      * Starting point of the program.
-     *
+     * <p>
      * Initialize the server thread, show help
      * and then scan for and interpret users input.
      *
@@ -23,17 +25,11 @@ class Server {
      */
     public static void main(String[] args) throws IOException {
 
-        int maxMemorySize = 1000; // in MB
+        parseArguments(args);
+        System.out.println("[-] Max memory to use per connection: " + maxMemorySize + " MB");
+        System.out.println("[-] Max number of connections: " + maxConnectionCount);
 
-        if(args.length > 1) {
-            int arg = Integer.parseInt(args[0]);
-            if(arg < 1){
-                throw new IllegalArgumentException("Maximum memory size must be positive");
-            }
-            maxMemorySize = arg;
-        }
-
-        thread = new ServerThread(maxMemorySize);
+        thread = new ServerThread(maxMemorySize, maxConnectionCount);
         thread.start();
 
         showHelp();
@@ -82,8 +78,53 @@ class Server {
     }
 
     /**
+     * Parse the argument passed on the command line.
+     * @param args Array of argument Strings
+     */
+    private static void parseArguments(String[] args) {
+        if (args.length == 0) {
+            System.out.println("[-] Using default parameter values");
+        } else if (args.length == 4) {
+            for (int i = 0; i < args.length; i += 2) {
+                if (args[i].equals("-c")) {
+                    int mc = Integer.parseInt(args[i + 1]);
+                    if (mc < 1) {
+                        System.out.println("Argument MAX_CONN must be >= 1!");
+                        showUsage();
+                        System.exit(0);
+                    }
+                    maxConnectionCount = mc;
+                } else if (args[i].equals("-m")) {
+                    int mm = Integer.parseInt(args[i + 1]);
+                    if (mm < 1) {
+                        System.out.println("Argument MAX_MEM must be >= 1");
+                        showUsage();
+                        System.exit(0);
+                    }
+                    maxMemorySize = mm;
+                }
+            }
+        } else {
+            System.out.println("Wrong number of arguments!");
+            showUsage();
+            System.exit(0);
+        }
+    }
+
+    /**
+     * Display a usage message
+     */
+    private static void showUsage() {
+        System.out.println("Usage:");
+        System.out.println("- default parameters: $ java com.company.Server");
+        System.out.println("- custom parameters:  $ java com.company.Server -c <MAX_CONN> -m <MAX_MEM>");
+        System.out.println("       MAX_CONN -- maximum number of connections that will be accepted (default: " + maxConnectionCount + ")");
+        System.out.println("       MAX_MEM  -- max memory (in MB) allocated for pre-recording one connection (default: " + maxMemorySize + ")");
+    }
+
+    /**
      * Stop recording the connection passed in the argument.
-     *
+     * <p>
      * If the connectionID equals to "a" or "active", replace
      * that with the active connection ID.
      *
@@ -91,19 +132,19 @@ class Server {
      * @throws IOException in case something went wrong with the output file stream
      */
     private static void stopRecording(String connectionID) throws IOException {
-        if(connectionID.equals("a") || connectionID.equals("active")){
-            if(thread.activeConnection.equals("")){
+        if (connectionID.equals("a") || connectionID.equals("active")) {
+            if (thread.activeConnection.equals("")) {
                 System.out.println("[-] No active connection, cannot stop recording it");
                 return;
             }
             connectionID = thread.activeConnection;
         }
 
-        if(!checkConnection(connectionID))
+        if (!checkConnection(connectionID))
             return;
 
         Connection toStop = thread.connections.get(connectionID);
-        if(toStop != null)
+        if (toStop != null)
             toStop.stopRecording();
         else
             System.out.println("[-] Connection with this ID not found");
@@ -116,20 +157,20 @@ class Server {
      *
      * @param connectionID Connection that should be recorded
      */
-    private static void startRecording(String connectionID){
-        if(connectionID.equals("a") || connectionID.equals("active")){
-            if(thread.activeConnection.equals("")){
+    private static void startRecording(String connectionID) {
+        if (connectionID.equals("a") || connectionID.equals("active")) {
+            if (thread.activeConnection.equals("")) {
                 System.out.println("[-] No active connection to record");
                 return;
             }
             connectionID = thread.activeConnection;
         }
 
-        if(!checkConnection(connectionID))
+        if (!checkConnection(connectionID))
             return;
 
         Connection toRecord = thread.connections.get(connectionID);
-        if(toRecord != null)
+        if (toRecord != null)
             toRecord.startRecording();
         else
             System.out.println("[-] Connection with this ID not found");
@@ -141,26 +182,26 @@ class Server {
      * @param connectionID Connection to be removed
      */
     private static void removeConnection(String connectionID) {
-        if(connectionID.equals("a") || connectionID.equals("active"))
+        if (connectionID.equals("a") || connectionID.equals("active"))
             connectionID = thread.activeConnection;
 
-        if(checkConnection(connectionID)){
+        if (checkConnection(connectionID)) {
             thread.removeConnection(connectionID);
         }
     }
 
     /**
      * Check whether the given connection is in a valid format.
-     *
+     * <p>
      * Connection should always be a string looking like this:
-     *     IP:port
-     *
+     * IP:port
+     * <p>
      * Apart form the format, the validity of the IP address
      * and the port number is checked as well.
-     *
+     * <p>
      * Inspired by the answer to the StackOverflow question "Validate IPv4 address in Java
-     *     author of the answer: Akarshit Wal
-     *     available at: https://stackoverflow.com/a/30691451/6136143
+     * author of the answer: Akarshit Wal
+     * available at: https://stackoverflow.com/a/30691451/6136143
      *
      * @param connectionID Connection to be validated
      * @return True if the connection is valid, false otherwise
@@ -192,13 +233,14 @@ class Server {
     /**
      * Switch the active connection of the thread to the one
      * given as an argument.
-     *
+     * <p>
      * The connection is validated first.
+     *
      * @param connectionID Connection to be marked as active
      */
     private static void switchToConnection(String connectionID) {
         if (checkConnection(connectionID)) {
-            if(!thread.connections.containsKey(connectionID)){
+            if (!thread.connections.containsKey(connectionID)) {
                 System.out.println("[-] The connection does not exist");
                 return;
             }
@@ -216,9 +258,12 @@ class Server {
         System.out.println("Active connection: " + thread.activeConnection);
         System.out.println("----------------------------------------");
         System.out.println("Other connections: ");
-        for(String connectionID : thread.connections.keySet()){
-            if(!connectionID.equals(thread.activeConnection))
+        for (String connectionID : thread.connections.keySet()) {
+            if (!connectionID.equals(thread.activeConnection))
                 System.out.println(" - " + connectionID);
+        }
+        if(thread.connections.size() >= maxConnectionCount){
+            System.out.println("MAX CONNECTION LIMIT REACHED -- if you want any new connection, please remove some from the list.");
         }
     }
 
