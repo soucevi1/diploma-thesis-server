@@ -11,7 +11,7 @@ import java.util.Date;
 public class Connection implements Comparable<Connection> {
 
     private volatile boolean recording = false;
-    public ByteRingBuffer buffer;
+    public final ByteRingBuffer buffer;
 
     public File recordFile;
     String filename;
@@ -42,6 +42,8 @@ public class Connection implements Comparable<Connection> {
             return;
         }
 
+        System.out.println("[-] Recording the connection " + id);
+
         filename = createFilename();
 
         try {
@@ -70,13 +72,19 @@ public class Connection implements Comparable<Connection> {
      * file before any newly recorded data.
      */
     private void writeBufferToFile(){
-        byte[] data = new byte[buffer.getUsed()];
-        int read = buffer.read(data);
+        byte[] data;
+        int read;
+        synchronized (buffer) {
+            data = new byte[buffer.getUsed()];
+            read = buffer.read(data);
+        }
 
-        try {
-            wfWriter.write(data, 0, read);
-        } catch (IOException e) {
-            e.printStackTrace();
+        synchronized (wfWriter) {
+            try {
+                wfWriter.write(data, 0, read);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -110,17 +118,9 @@ public class Connection implements Comparable<Connection> {
      * @param dataLength Length of the received data
      */
     public void writeToBuffer(byte[] data, int dataLength){
-        buffer.write(data, 0, dataLength);
-    }
-
-    /**
-     * Resize the ring buffer of this connection.
-     * @param newSize New size of the buffer
-     */
-    public void resizeBuffer(int newSize){
-        if(newSize < 0)
-            throw new IllegalArgumentException("New buffer size must be positive");
-        buffer.resize(newSize);
+        synchronized (buffer) {
+            buffer.write(data, 0, dataLength);
+        }
     }
 
     /**

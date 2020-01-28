@@ -13,6 +13,8 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ServerThread implements Runnable {
 
@@ -24,6 +26,7 @@ public class ServerThread implements Runnable {
     Map<String, Connection> connections;
 
     private Thread t;
+    private ExecutorService pool;
 
     private int sampleRate = 44100;//16000;//8000;//44100;//44100;
     private int bufferLen = 26880 * 20;//960*20;//512*2;
@@ -50,6 +53,7 @@ public class ServerThread implements Runnable {
         maxMemorySize = maxMemory * 1000000;
         maxConnections = maxConnectionCount;
         ringBufferSize = maxMemorySize;
+        pool = Executors.newFixedThreadPool(maxConnections);
 
         System.out.println("[-] Buffers size set to: " + ringBufferSize + " B. (~ prerecorded " +
                 ((ringBufferSize) / (2 * sampleRate)) / 60 + " minutes and " + ((ringBufferSize) / (2 * sampleRate)) % 60 +
@@ -123,22 +127,14 @@ public class ServerThread implements Runnable {
             byte[] data = packet.getData();
             int dataLength = packet.getLength();
 
-            if (currentConnection.isRecording()) {
-                toFile(data, dataLength, currentConnection);
-            } else {
-                toRingBuffer(data, dataLength, currentConnection);
-            }
-
-            // If this connection is supposed to be active,
-            // play the received sound on the speakers
-            if (senderID.equals(activeConnection)) {
-                toSpeaker(data, dataLength);
-                Arrays.fill(receiveData, (byte) 0);
-            }
+            // Decide what to do with received data
+            Runnable task = new ConnectionTask(currentConnection, data, dataLength, senderID.equals(activeConnection), sourceDataLine);
+            pool.execute(task);
         }
 
         // Exit the application
         System.out.println("[-] Thread exiting");
+        pool.shutdown();
         sourceDataLine.drain();
         sourceDataLine.close();
     }
@@ -156,31 +152,6 @@ public class ServerThread implements Runnable {
             System.out.println("[-] Connection " + connectionID + " removed.");
         } else
             System.out.println("[-] Connection does not exist");
-    }
-
-    /**
-     * Write the chunk of data to the output file.
-     * @param data Data to be written
-     * @param dataLength Length of the data to be written
-     * @param connection Connection which the data belong to
-     */
-    private void toFile(byte[] data, int dataLength, Connection connection) {
-        try {
-            connection.wfWriter.write(data, 0, dataLength);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Write the chunk of data to the ring buffer oof the
-     * connection the data came from
-     * @param data Data to be written
-     * @param dataLength Length of the data to be written
-     * @param conn Connection which the data belong to
-     */
-    private void toRingBuffer(byte[] data, int dataLength, Connection conn) {
-        conn.writeToBuffer(data, dataLength);
     }
 
     /**
@@ -250,20 +221,5 @@ public class ServerThread implements Runnable {
         }
         int port = packet.getPort();
         return addr + ":" + port;
-    }
-
-    /**
-     * Play the received data on the speaker.
-     *
-     * @param soundbytes Data to play.
-     * @param length     Length of the data o play/
-     */
-    public void toSpeaker(byte[] soundbytes, int length) {
-        try {
-            sourceDataLine.write(soundbytes, 0, length);
-        } catch (Exception e) {
-            System.out.println("Not working in speakers...");
-            e.printStackTrace();
-        }
     }
 }

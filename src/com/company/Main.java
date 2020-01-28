@@ -86,22 +86,33 @@ class Server {
             System.out.println("[-] Using default parameter values");
         } else if (args.length == 4) {
             for (int i = 0; i < args.length; i += 2) {
-                if (args[i].equals("-c")) {
-                    int mc = Integer.parseInt(args[i + 1]);
-                    if (mc < 1) {
-                        System.out.println("Argument MAX_CONN must be >= 1!");
+                switch (args[i]) {
+                    case "-c":
+                        int mc = Integer.parseInt(args[i + 1]);
+                        if (mc < 1) {
+                            System.out.println("Argument MAX_CONN must be >= 1!");
+                            showUsage();
+                            System.exit(0);
+                        }
+                        maxConnectionCount = mc;
+                        break;
+                    case "-m":
+                        int mm = Integer.parseInt(args[i + 1]);
+                        if (mm < 1) {
+                            System.out.println("Argument MAX_MEM must be >= 1");
+                            showUsage();
+                            System.exit(0);
+                        }
+                        maxMemorySize = mm;
+                        break;
+                    case "-h":
                         showUsage();
                         System.exit(0);
-                    }
-                    maxConnectionCount = mc;
-                } else if (args[i].equals("-m")) {
-                    int mm = Integer.parseInt(args[i + 1]);
-                    if (mm < 1) {
-                        System.out.println("Argument MAX_MEM must be >= 1");
+                        break;
+                    default:
+                        System.out.println("Unknown argument");
                         showUsage();
                         System.exit(0);
-                    }
-                    maxMemorySize = mm;
                 }
             }
         } else {
