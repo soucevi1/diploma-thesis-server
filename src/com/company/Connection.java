@@ -11,33 +11,37 @@ import java.util.Date;
 public class Connection implements Comparable<Connection> {
 
     private volatile boolean recording = false;
-    public final ByteRingBuffer buffer;
+    public ByteRingBuffer buffer;
 
     public File recordFile;
     String filename;
     WaveFileWriter wfWriter;
 
+    long dataLastReceived;
+
     public String id;
 
     /**
      * Constructor
-     * @param connId String in the format "IP:port" that identifies this connection
+     *
+     * @param connId     String in the format "IP:port" that identifies this connection
      * @param bufferSize Initial size of the ring buffer
      */
-    public Connection(String connId, int bufferSize){
+    public Connection(String connId, int bufferSize) {
         id = connId;
         buffer = new ByteRingBuffer(bufferSize);
+        dataLastReceived = System.currentTimeMillis();
     }
 
     /**
      * The user has started the recording of this connection.
      * New file is created, the WaveFileWriter stream is initialized,
      * the ring buffer is written to the file and the recording flag is set to true.
-     *
+     * <p>
      * If the connection is already being recorded, the method returns
      */
-    public void startRecording(){
-        if(isRecording()){
+    public void startRecording() {
+        if (isRecording()) {
             System.out.println("[-] This connection is already being recorded");
             return;
         }
@@ -48,7 +52,7 @@ public class Connection implements Comparable<Connection> {
 
         try {
             recordFile = new File(filename);
-            if (! recordFile.createNewFile())
+            if (!recordFile.createNewFile())
                 throw new FileAlreadyExistsException("File " + filename + " already exists.");
         } catch (IOException e) {
             e.printStackTrace();
@@ -65,62 +69,67 @@ public class Connection implements Comparable<Connection> {
         recording = true;
     }
 
+    public void updateTimestamp() {
+        dataLastReceived = System.currentTimeMillis();
+    }
+
     /**
      * Write the ring buffer to the file.
-     *
+     * <p>
      * The buffer with pre-recorded data is written to the output
      * file before any newly recorded data.
      */
-    private void writeBufferToFile(){
+    private void writeBufferToFile() {
         byte[] data;
         int read;
-        synchronized (buffer) {
-            data = new byte[buffer.getUsed()];
-            read = buffer.read(data);
+        data = new byte[buffer.getSize()];
+        read = buffer.read(data);
+
+
+        try {
+            wfWriter.write(data, 0, read);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
 
-        synchronized (wfWriter) {
-            try {
-                wfWriter.write(data, 0, read);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
     }
 
     /**
      * Find out whether this connection is already being recorded to the file.
+     *
      * @return Boolean, true if this connection is already being recorded, false otherwise.
      */
-    public boolean isRecording(){
+    public boolean isRecording() {
         return recording;
     }
 
     /**
      * Stop recording this connection.
-     *
+     * <p>
      * Set the recording flag to false and close the output stream.
-     * @throws IOException if there is a problem with the output stream
      */
-    public void stopRecording() throws IOException {
-        if(!isRecording()){
+    public void stopRecording() {
+        if (!isRecording()) {
             System.out.println("[-] Tried to stop recording a connection that is not being recorded");
             return;
         }
         recording = false;
         System.out.println("[-] File " + filename + " created.");
-        wfWriter.close();
+        try {
+            wfWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
      * Write the received data to the ring buffer
-     * @param data Received data
+     *
+     * @param data       Received data
      * @param dataLength Length of the received data
      */
-    public void writeToBuffer(byte[] data, int dataLength){
-        synchronized (buffer) {
-            buffer.write(data, 0, dataLength);
-        }
+    public void writeToBuffer(byte[] data, int dataLength) {
+        buffer.write(data, 0, dataLength);
     }
 
     /**
@@ -129,7 +138,7 @@ public class Connection implements Comparable<Connection> {
      *
      * @return The newly created filename.
      */
-    private String createFilename(){
+    private String createFilename() {
         String modifiedID = id.replace(":", ".");
         String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
         return modifiedID + "___" + timeStamp + ".wav";

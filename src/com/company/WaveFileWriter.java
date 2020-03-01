@@ -28,6 +28,7 @@ public class WaveFileWriter {
     private int bytesWritten;
     private File outputFile;
     private boolean headerWritten = false;
+    private final Object writeLock = new Object();
 
     /**
      * Create a writer that will write to the specified file.
@@ -60,11 +61,13 @@ public class WaveFileWriter {
      * @throws IOException in case something went wrong with the output stream
      */
     public void write(byte[] buffer, int start, int count) throws IOException {
-        if(! headerWritten){
-            writeHeader();
-        }
-        for(int i=0; i<count; i++){
-            writeByte(buffer[start + i]);
+        synchronized (writeLock) {
+            if (!headerWritten) {
+                writeHeader();
+            }
+            for (int i = 0; i < count; i++) {
+                writeByte(buffer[start + i]);
+            }
         }
     }
 

@@ -5,7 +5,7 @@
 //     - ByteRingBuffer
 //         autor: Christian d'Heureuse, Inventec Informatik AG, Zurich, Switzerland
 //         dostupne z: http://www.source-code.biz/snippets/java/ByteRingBuffer/
-//         Pouzita kompletni trida ByteRingBuffer
+//         Pouzita kompletni trida ByteRingBuffer, pridana synchronizace
 
 package com.company;
 
@@ -15,6 +15,7 @@ public class ByteRingBuffer {
     private int rBufSize;                     // ring buffer size
     private int rBufPos;                      // position of first (oldest) data byte within the ring buffer
     private int rBufUsed;                     // number of used data bytes within the ring buffer
+    private final Object bufferLock = new Object();
 
     /**
      * Creates a ring buffer.
@@ -99,23 +100,25 @@ public class ByteRingBuffer {
      * This is guaranteed to be <code>min(len, getFree())</code>.
      */
     public int write(byte[] buf, int pos, int len) {
-        if (len < 0) {
-            throw new IllegalArgumentException();
-        }
-        if (rBufUsed == 0) {
-            rBufPos = 0;
-        }                                       // (speed optimization)
-        int p1 = rBufPos + rBufUsed;
-        if (p1 < rBufSize) {                                    // free space in two pieces
-            int trLen1 = Math.min(len, rBufSize - p1);
-            append(buf, pos, trLen1);
-            int trLen2 = Math.min(len - trLen1, rBufPos);
-            append(buf, pos + trLen1, trLen2);
-            return trLen1 + trLen2;
-        } else {                                                 // free space in one piece
-            int trLen = Math.min(len, rBufSize - rBufUsed);
-            append(buf, pos, trLen);
-            return trLen;
+        synchronized (bufferLock) {
+            if (len < 0) {
+                throw new IllegalArgumentException();
+            }
+            if (rBufUsed == 0) {
+                rBufPos = 0;
+            }                                       // (speed optimization)
+            int p1 = rBufPos + rBufUsed;
+            if (p1 < rBufSize) {                                    // free space in two pieces
+                int trLen1 = Math.min(len, rBufSize - p1);
+                append(buf, pos, trLen1);
+                int trLen2 = Math.min(len - trLen1, rBufPos);
+                append(buf, pos + trLen1, trLen2);
+                return trLen1 + trLen2;
+            } else {                                                 // free space in one piece
+                int trLen = Math.min(len, rBufSize - rBufUsed);
+                append(buf, pos, trLen);
+                return trLen;
+            }
         }
     }
 
@@ -147,14 +150,16 @@ public class ByteRingBuffer {
      * This is guaranteed to be <code>min(len, getUsed())</code>.
      */
     public int read(byte[] buf, int pos, int len) {
-        if (len < 0) {
-            throw new IllegalArgumentException();
+        synchronized (bufferLock) {
+            if (len < 0) {
+                throw new IllegalArgumentException();
+            }
+            int trLen1 = Math.min(len, Math.min(rBufUsed, rBufSize - rBufPos));
+            remove(buf, pos, trLen1);
+            int trLen2 = Math.min(len - trLen1, rBufUsed);
+            remove(buf, pos + trLen1, trLen2);
+            return trLen1 + trLen2;
         }
-        int trLen1 = Math.min(len, Math.min(rBufUsed, rBufSize - rBufPos));
-        remove(buf, pos, trLen1);
-        int trLen2 = Math.min(len - trLen1, rBufUsed);
-        remove(buf, pos + trLen1, trLen2);
-        return trLen1 + trLen2;
     }
 
     /**

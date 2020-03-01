@@ -8,33 +8,31 @@
 package com.company;
 
 import javax.sound.sampled.*;
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class ServerThread implements Runnable {
 
-    private int port = 50005;
-
     volatile boolean status = true;
-    volatile String activeConnection = "";
 
+    volatile AtomicReference<String> activeConnection = new AtomicReference<>();
     Map<String, Connection> connections;
+    final int connectionTimeout = 2000; // 2 seconds
 
     private Thread t;
     private ExecutorService pool;
+    ScheduledExecutorService timeoutChecker;
 
     private int sampleRate = 44100;//16000;//8000;//44100;//44100;
     private int bufferLen = 26880 * 20;//960*20;//512*2;
     private byte[] receiveData = new byte[bufferLen];
 
     private SourceDataLine sourceDataLine;
-    private AudioFormat format;
-    private DataLine.Info dataLineInfo;
-    private FloatControl volumeControl;
 
     private DatagramSocket serverSocket;
 
@@ -54,6 +52,7 @@ public class ServerThread implements Runnable {
         threadCount = threadCnt;
         ringBufferSize = maxMemorySize;
         pool = Executors.newFixedThreadPool(threadCount);
+        activeConnection.set("");
 
         System.out.println("[-] Buffers size set to: " + ringBufferSize + " B. (~ prerecorded " +
                 ((ringBufferSize) / (2 * sampleRate)) / 60 + " minutes and " + ((ringBufferSize) / (2 * sampleRate)) % 60 +
@@ -76,6 +75,7 @@ public class ServerThread implements Runnable {
     public void run() {
 
         try {
+            int port = 50005;
             serverSocket = new DatagramSocket(port);
         } catch (SocketException e) {
             e.printStackTrace();
@@ -97,8 +97,9 @@ public class ServerThread implements Runnable {
         initializeAudioPlayer();
 
         // Initialize connection list
-        connections = new HashMap<>();
-        //connectionNames = new TreeSet<>();
+        connections = new ConcurrentHashMap<>();
+
+        startTimeoutChecker();
 
         // Run until user changes status
         while (status) {
@@ -116,9 +117,11 @@ public class ServerThread implements Runnable {
 
             Connection currentConnection = connections.get(senderID);
 
+            currentConnection.updateTimestamp();
+
             // If no connection is active, make this one active
-            if (activeConnection.equals("")) {
-                activeConnection = senderID;
+            if (activeConnection.get().equals("")) {
+                activeConnection.set(senderID);
                 System.out.println("[-] Active connection: " + activeConnection);
             }
 
@@ -126,15 +129,35 @@ public class ServerThread implements Runnable {
             int dataLength = packet.getLength();
 
             // Decide what to do with received data
-            Runnable task = new ConnectionTask(currentConnection, data, dataLength, senderID.equals(activeConnection), sourceDataLine);
+            Runnable task = new ConnectionTask(currentConnection, data, dataLength, senderID.equals(activeConnection.get()), sourceDataLine);
             pool.execute(task);
         }
 
         // Exit the application
         System.out.println("[-] Thread exiting");
+        timeoutChecker.shutdown();
         pool.shutdown();
         sourceDataLine.drain();
         sourceDataLine.close();
+    }
+
+    /**
+     * Check every connection if it timed out.
+     * <p>
+     * The periodical execution was inspired by the answer to the StackOverflow question "Java Thread every X seconds"
+     * authors: Matt Ball, cletus
+     * available at: https://stackoverflow.com/a/3541686/6136143
+     */
+    private void startTimeoutChecker() {
+        timeoutChecker = Executors.newSingleThreadScheduledExecutor();
+        timeoutChecker.scheduleAtFixedRate(() -> {
+            for (String connID : connections.keySet()) {
+                Connection current = connections.get(connID);
+                if (System.currentTimeMillis() - current.dataLastReceived > connectionTimeout) {
+                    removeConnection(connID);
+                }
+            }
+        }, 0, 3, TimeUnit.SECONDS);
     }
 
     /**
@@ -143,8 +166,12 @@ public class ServerThread implements Runnable {
      * @param connectionID ID of the connection to be removed
      */
     public void removeConnection(String connectionID) {
-        if (connectionID.equals(activeConnection)) {
-            activeConnection = "";
+        if (connectionID.equals(activeConnection.get())) {
+            activeConnection.set("");
+        }
+
+        if (connections.get(connectionID).isRecording()) {
+            connections.get(connectionID).stopRecording();
         }
 
         if (connections.remove(connectionID) != null) {
@@ -186,8 +213,8 @@ public class ServerThread implements Runnable {
      * available at: https://stackoverflow.com/questions/15349987/stream-live-android-audio-to-server
      */
     private void initializeAudioPlayer() {
-        format = new AudioFormat(sampleRate, 16, 1, true, false);
-        dataLineInfo = new DataLine.Info(SourceDataLine.class, format);
+        AudioFormat format = new AudioFormat(sampleRate, 16, 1, true, false);
+        DataLine.Info dataLineInfo = new DataLine.Info(SourceDataLine.class, format);
 
         try {
             sourceDataLine = (SourceDataLine) AudioSystem.getLine(dataLineInfo);
@@ -202,7 +229,7 @@ public class ServerThread implements Runnable {
         }
         sourceDataLine.start();
 
-        volumeControl = (FloatControl) sourceDataLine.getControl(FloatControl.Type.MASTER_GAIN);
+        FloatControl volumeControl = (FloatControl) sourceDataLine.getControl(FloatControl.Type.MASTER_GAIN);
         volumeControl.setValue(volumeControl.getMaximum());
     }
 

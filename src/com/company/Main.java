@@ -141,15 +141,14 @@ class Server {
      * that with the active connection ID.
      *
      * @param connectionID ID of the connection to be stopped recording
-     * @throws IOException in case something went wrong with the output file stream
      */
-    private static void stopRecording(String connectionID) throws IOException {
+    private static void stopRecording(String connectionID) {
         if (connectionID.equals("a") || connectionID.equals("active")) {
-            if (thread.activeConnection.equals("")) {
+            connectionID = thread.activeConnection.get();
+            if (connectionID.equals("")) {
                 System.out.println("[-] No active connection, cannot stop recording it");
                 return;
             }
-            connectionID = thread.activeConnection;
         }
 
         if (!verifyConnectionFormat(connectionID))
@@ -171,11 +170,11 @@ class Server {
      */
     private static void startRecording(String connectionID) {
         if (connectionID.equals("a") || connectionID.equals("active")) {
-            if (thread.activeConnection.equals("")) {
+            connectionID = thread.activeConnection.get();
+            if (connectionID.equals("")) {
                 System.out.println("[-] No active connection to record");
                 return;
             }
-            connectionID = thread.activeConnection;
         }
 
         if (!verifyConnectionFormat(connectionID))
@@ -195,7 +194,7 @@ class Server {
      */
     private static void removeConnection(String connectionID) {
         if (connectionID.equals("a") || connectionID.equals("active"))
-            connectionID = thread.activeConnection;
+            connectionID = thread.activeConnection.get();
 
         if (verifyConnectionFormat(connectionID)) {
             thread.removeConnection(connectionID);
@@ -257,7 +256,7 @@ class Server {
                 return;
             }
             System.out.println("[-] Connection " + connectionID + " set as active. Replaced " + thread.activeConnection);
-            thread.activeConnection = connectionID;
+            thread.activeConnection.set(connectionID);
         }
     }
 
@@ -271,7 +270,7 @@ class Server {
         System.out.println("----------------------------------------");
         System.out.println("Other connections: ");
         for (String connectionID : thread.connections.keySet()) {
-            if (!connectionID.equals(thread.activeConnection))
+            if (!connectionID.equals(thread.activeConnection.get()))
                 System.out.println(" - " + connectionID);
         }
     }
