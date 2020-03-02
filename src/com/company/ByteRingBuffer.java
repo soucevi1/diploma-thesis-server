@@ -18,7 +18,8 @@ public class ByteRingBuffer {
     private final Object bufferLock = new Object();
 
     /**
-     * Creates a ring buffer.
+     * Konstruktor
+     * @param size Velikost bufferu
      */
     public ByteRingBuffer(int size) {
         if (size <= 0) {
@@ -29,75 +30,20 @@ public class ByteRingBuffer {
     }
 
     /**
-     * Resizes the ring buffer by preserving it's data.
-     *
-     * <p>If the new size is not enough to keep all used data in the ring buffer,
-     * the excess old data is discarded.
-     */
-    public void resize(int newSize) {
-        if (newSize <= 0) {
-            throw new IllegalArgumentException();
-        }
-        if (newSize < rBufUsed) {                               // if new buffer is too small to contain all data
-            discard(rBufUsed - newSize);
-        }                       // discard oldest data
-        byte[] newBuf = new byte[newSize];
-        int newBufUsed = read(newBuf, 0, newSize);              // transfer data to new buffer
-        rBuf = newBuf;
-        rBufSize = newSize;
-        rBufPos = 0;
-        rBufUsed = newBufUsed;
-    }
-
-    /**
-     * Returns the size of the ring buffer.
+     * Vraci velikost bufferu.
      */
     public int getSize() {
         return rBufSize;
     }
 
     /**
-     * Returns the number of free bytes within the ring buffer.
-     */
-    public int getFree() {
-        return rBufSize - rBufUsed;
-    }
-
-    /**
-     * Returns the number of used bytes within the ring buffer.
-     */
-    public int getUsed() {
-        return rBufUsed;
-    }
-
-    /**
-     * Clears the ring buffer.
-     */
-    public void clear() {
-        rBufPos = 0;
-        rBufUsed = 0;
-    }
-
-    /**
-     * Discards the oldest <code>len</code> bytes within the ring buffer.
-     * This has the same effect as calling <code>read(new byte[len], 0, len)</code>.
+     * Zapise data do bufferu
      *
-     * @param len The number of bytes to be discarded.
-     */
-    public void discard(int len) {
-        if (len < 0) {
-            throw new IllegalArgumentException();
-        }
-        int trLen = Math.min(len, rBufUsed);
-        rBufPos = clip(rBufPos + trLen);
-        rBufUsed -= trLen;
-    }
-
-    /**
-     * Writes data to the ring buffer.
-     *
-     * @return The number of bytes written.
-     * This is guaranteed to be <code>min(len, getFree())</code>.
+     * @param buf Data k zapisu
+     * @param pos Pozice v bufferu, kam se ma zapsat prvni prvek
+     * @param len  Delka dat k zapisu
+     * @return Pocet zapsanych bytu
+     * Zaruceno <code>min(len, getFree())</code>
      */
     public int write(byte[] buf, int pos, int len) {
         synchronized (bufferLock) {
@@ -122,15 +68,6 @@ public class ByteRingBuffer {
         }
     }
 
-    /**
-     * Writes data to the ring buffer.
-     *
-     * <p>Convenience method for: <code>write(buf, 0, buf.length)</code>
-     */
-    public int write(byte[] buf) {
-        return write(buf, 0, buf.length);
-    }
-
     private void append(byte[] buf, int pos, int len) {
         if (len == 0) {
             return;
@@ -144,10 +81,12 @@ public class ByteRingBuffer {
     }
 
     /**
-     * Reads data from the ring buffer.
-     *
-     * @return The number of bytes read.
-     * This is guaranteed to be <code>min(len, getUsed())</code>.
+     * Precte data z bufferu.
+     * @param len Pozadovany pocet prectenych bytu
+     * @param buf Buffer pro ulozeni prectenych dat
+     * @param pos Pozice, odkud precist prvni byte
+     * @return Pocet prectenych bytu.
+     * Zaruceno <code>min(len, getUsed())</code>.
      */
     public int read(byte[] buf, int pos, int len) {
         synchronized (bufferLock) {
@@ -163,9 +102,9 @@ public class ByteRingBuffer {
     }
 
     /**
-     * Reads data from the ring buffer.
+     * Precte data z bufferu.
      *
-     * <p>Convenience method for: <code>read(buf, 0, buf.length)</code>
+     * <p>Zjednoduseni pro: <code>read(buf, 0, buf.length)</code>
      */
     public int read(byte[] buf) {
         return read(buf, 0, buf.length);

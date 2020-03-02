@@ -11,20 +11,19 @@ import java.util.Scanner;
 
 class Server {
     private static ServerThread thread;
-    static int maxMemorySize = 100;
-    static int threadCount = 8;
+    private static int maxMemorySize = 100;
+    private static int threadCount = 8;
 
     /**
-     * Starting point of the program.
+     * Vstupni bod programu.
      * <p>
-     * Initialize the server thread, show help
-     * and then scan for and interpret users input.
+     * Inicializuje hlavni vlakno serveru, ukaze napovedu
+     * a pote nacita a interpretuje vstup uzivatele.
      *
-     * @param args Two arguments -- maximum allowed memory size for pre-recording the audio
-     *             and number of threads to run the application with
-     * @throws IOException in case something went wrong with file output streams
+     * @param args Dva argumenty -- maximalni povolena pamet pro prednahravani jednotlivzych spojeni
+     *             a pocet vlaken, ktere budou zpracovavat prijata data.
      */
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
 
         parseArguments(args);
         System.out.println("[-] Max memory to use per connection: " + maxMemorySize + " MB");
@@ -79,8 +78,8 @@ class Server {
     }
 
     /**
-     * Parse the argument passed on the command line.
-     * @param args Array of argument Strings
+     * Nacteni argumentu z prikazove radky
+     * @param args Pole retezcu s argumenty
      */
     private static void parseArguments(String[] args) {
         if (args.length == 0) {
@@ -124,7 +123,7 @@ class Server {
     }
 
     /**
-     * Display a usage message
+     * Ukaze text s navodem ke spusteni aplikace.
      */
     private static void showUsage() {
         System.out.println("Usage:");
@@ -135,12 +134,12 @@ class Server {
     }
 
     /**
-     * Stop recording the connection passed in the argument.
+     * Yastavi nahravani spojeni predaneho v parametru
      * <p>
-     * If the connectionID equals to "a" or "active", replace
-     * that with the active connection ID.
+     * Pokud connectionID je "a" nebo "active", nahradi
+     * ho ID aktivniho spojeni.
      *
-     * @param connectionID ID of the connection to be stopped recording
+     * @param connectionID ID spojeni, ktere ma byt zastaveno.
      */
     private static void stopRecording(String connectionID) {
         if (connectionID.equals("a") || connectionID.equals("active")) {
@@ -162,11 +161,11 @@ class Server {
     }
 
     /**
-     * Start recording a connection given in the argument.
-     * If the connectionID equals to "a" or "active", replace
-     * that with the active connection ID.
+     * Zacne nahravat spojeni predane v parametru
+     * Pokud connectionID je "a" nebo "active", nahradi
+     * ho ID aktivniho spojeni.
      *
-     * @param connectionID Connection that should be recorded
+     * @param connectionID ID spojeni, ktere ma byt nahravano
      */
     private static void startRecording(String connectionID) {
         if (connectionID.equals("a") || connectionID.equals("active")) {
@@ -188,9 +187,9 @@ class Server {
     }
 
     /**
-     * Remove the given connection from the thread's list.
+     * Odebere spojeni predane v parametru ze seznamu vsech spojeni.
      *
-     * @param connectionID Connection to be removed
+     * @param connectionID Spojeni, ktere ma byt odebrano
      */
     private static void removeConnection(String connectionID) {
         if (connectionID.equals("a") || connectionID.equals("active"))
@@ -202,20 +201,19 @@ class Server {
     }
 
     /**
-     * Check whether the given connection is in a valid format.
+     * Kontroluje, jestli ID spojeni z parametru ma spravny format
      * <p>
-     * Connection should always be a string looking like this:
+     * Korektni ID spojeni vzdy ma nasledujici tvar:
      * IP:port
      * <p>
-     * Apart form the format, the validity of the IP address
-     * and the port number is checked as well.
+     * Krome formatu je kontrolovana platnost IP adresy (0-255) a portu (0-65535)
      * <p>
-     * Inspired by the answer to the StackOverflow question "Validate IPv4 address in Java"
-     * author of the answer: Akarshit Wal
-     * available at: https://stackoverflow.com/a/30691451/6136143
+     * Inspirovano odpovedi na otazku "Validate IPv4 address in Java" na StackOverflow.
+     * autor odpovedi: Akarshit Wal
+     * dostupne z: https://stackoverflow.com/a/30691451/6136143
      *
-     * @param connectionID Connection to be validated
-     * @return True if the connection is valid, false otherwise
+     * @param connectionID ID spojeni, ktere ma byt overeno
+     * @return True pokud je ID platne, jinak false
      */
     private static boolean verifyConnectionFormat(String connectionID) {
         String[] split_conn = connectionID.split(":");
@@ -242,12 +240,11 @@ class Server {
     }
 
     /**
-     * Switch the active connection of the thread to the one
-     * given as an argument.
+     * Spojeni predane v parametru nastavi jako aktivni
      * <p>
-     * The connection is validated first.
+     * ID spojeni je nejprve overeno.
      *
-     * @param connectionID Connection to be marked as active
+     * @param connectionID ID spojeni, ktere ma byt aktivni
      */
     private static void switchToConnection(String connectionID) {
         if (verifyConnectionFormat(connectionID)) {
@@ -261,8 +258,7 @@ class Server {
     }
 
     /**
-     * Print the whole connection list of the thread,
-     * so that the user can choose which one to make active or record.
+     * Vypise seznam vsech aktualnich spojeni.
      */
     private static void listConnections() {
         System.out.println("----------------------------------------");
@@ -276,7 +272,7 @@ class Server {
     }
 
     /**
-     * Show the usage message.
+     * Vypise navod k pouziti.
      */
     private static void showHelp() {
         System.out.println();
@@ -309,6 +305,9 @@ class Server {
         System.out.println("<CONNECTION> can be either a string in format IP:port or a letter 'a' for a connection that is active at the time (except for the 's' command)");
     }
 
+    /**
+     * Vypise uvitaci obrazovku.
+     */
     private static void showWelcomeScreen(){
         System.out.println("   ___                         _____                          \n" +
                 "  |_  |                       /  ___|                         \n" +

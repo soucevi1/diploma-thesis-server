@@ -11,21 +11,22 @@ import java.util.Date;
 public class Connection implements Comparable<Connection> {
 
     private volatile boolean recording = false;
-    public ByteRingBuffer buffer;
+    private ByteRingBuffer buffer;
 
-    public File recordFile;
-    String filename;
-    WaveFileWriter wfWriter;
+    private File recordFile;
+    private String filename;
+    private WaveFileWriter wfWriter;
 
-    long dataLastReceived;
+    public long dataLastReceived;
 
     public String id;
 
     /**
-     * Constructor
+     * Konstruktor.
+     * Inicializuje ID, vytvori buffer a zaznamena, kdy bylo spojeni vytvoreno.
      *
-     * @param connId     String in the format "IP:port" that identifies this connection
-     * @param bufferSize Initial size of the ring buffer
+     * @param connId String ve formatu "IP:port", ktery spojeni identifikuje.
+     * @param bufferSize Velikost bufferu na prednahravani
      */
     public Connection(String connId, int bufferSize) {
         id = connId;
@@ -34,11 +35,10 @@ public class Connection implements Comparable<Connection> {
     }
 
     /**
-     * The user has started the recording of this connection.
-     * New file is created, the WaveFileWriter stream is initialized,
-     * the ring buffer is written to the file and the recording flag is set to true.
-     * <p>
-     * If the connection is already being recorded, the method returns
+     * Zacatek nahravani tohoto spojeni.
+     * Je vytvoren novy soubor, inicializovan WaveFileWriter stream.
+     * buffer je zapsan do souboru priznak Recording je nastaven na true.
+     * Pokud je spojeni jiz nahravano, metoda pouze skonci.
      */
     public void startRecording() {
         if (isRecording()) {
@@ -69,22 +69,21 @@ public class Connection implements Comparable<Connection> {
         recording = true;
     }
 
+    /**
+     * Aktualizuje cas poslednich prijatych dat.
+     */
     public void updateTimestamp() {
         dataLastReceived = System.currentTimeMillis();
     }
 
     /**
-     * Write the ring buffer to the file.
-     * <p>
-     * The buffer with pre-recorded data is written to the output
-     * file before any newly recorded data.
+     * Zapise buffer do souboru jeste pred jakakoliv nove nahrana data.
      */
     private void writeBufferToFile() {
         byte[] data;
         int read;
         data = new byte[buffer.getSize()];
         read = buffer.read(data);
-
 
         try {
             wfWriter.write(data, 0, read);
@@ -95,18 +94,17 @@ public class Connection implements Comparable<Connection> {
     }
 
     /**
-     * Find out whether this connection is already being recorded to the file.
+     * Zjisti, jestli toto spojeni je jiz nahravane do souboru.
      *
-     * @return Boolean, true if this connection is already being recorded, false otherwise.
+     * @return true pokud je spojeni jiz nahravano, jinak false.
      */
     public boolean isRecording() {
         return recording;
     }
 
     /**
-     * Stop recording this connection.
-     * <p>
-     * Set the recording flag to false and close the output stream.
+     * Zastavi nahravani tohoto spojeni.
+     * Priznak Recording je nastaven na false a je uzavren vystupni stream.
      */
     public void stopRecording() {
         if (!isRecording()) {
@@ -123,30 +121,42 @@ public class Connection implements Comparable<Connection> {
     }
 
     /**
-     * Write the received data to the ring buffer
+     * Zapise prijata data do bufferu.
      *
-     * @param data       Received data
-     * @param dataLength Length of the received data
+     * @param data Prijata data.
+     * @param dataLength Delka dat.
      */
     public void writeToBuffer(byte[] data, int dataLength) {
         buffer.write(data, 0, dataLength);
     }
 
     /**
-     * Craft a filename for the new recording.
-     * The filename is in format "connectionID___timestamp.wav"
+     * Zapise prijata data do souboru.
+     * @param data Prijata data.
+     * @param dataLength Delka prijatych dat.
+     */
+    public void writeToFile(byte[] data, int dataLength){
+        try {
+            wfWriter.write(data, 0, dataLength);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Vytvori jmeno pro novou nahravku.
+     * Jmeno ma format "connectionID_timestamp.wav"
      *
      * @return The newly created filename.
      */
     private String createFilename() {
         String modifiedID = id.replace(":", ".");
         String timeStamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
-        return modifiedID + "___" + timeStamp + ".wav";
+        return modifiedID + "_" + timeStamp + ".wav";
     }
 
     /**
-     * The Connection class needs to be comparable.
-     * The comparison is based on the ID (alphabetical)
+     * Porovnani objektu Connection (abecedne dle ID)
      */
     @Override
     public int compareTo(Connection connection) {

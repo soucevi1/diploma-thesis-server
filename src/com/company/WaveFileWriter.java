@@ -22,19 +22,16 @@ public class WaveFileWriter {
     private OutputStream outputStream;
     private long riffSizePosition = 0;
     private long dataSizePosition = 0;
-    private int frameRate = 44100;
-    private int samplesPerFrame = 1;
-    private int bitsPerSample = 16;
     private int bytesWritten;
     private File outputFile;
     private boolean headerWritten = false;
     private final Object writeLock = new Object();
 
     /**
-     * Create a writer that will write to the specified file.
+     * Konstruktor.
      *
-     * @param outputFile File that the output will be written to
-     * @throws FileNotFoundException in case the file is not found
+     * @param outputFile Soubor, kam se zapise vystup.
+     * @throws FileNotFoundException pokud soubor nexistuje.
      */
     public WaveFileWriter(File outputFile) throws FileNotFoundException {
         this.outputFile = outputFile;
@@ -43,8 +40,8 @@ public class WaveFileWriter {
     }
 
     /**
-     * Close the output stream.
-     * @throws IOException in case there is a problem with the stream
+     * Zavre vystupni stream.
+     * @throws IOException pokud je problem se streamem
      */
     public void close() throws IOException {
         outputStream.close();
@@ -52,13 +49,12 @@ public class WaveFileWriter {
     }
 
     /**
-     * Write the byte buffer to the output stream.
-     *
-     * First, check whether the WAVE header has already been written.
-     * @param buffer Data to write to the output stream
-     * @param start Starting position in the data buffer
-     * @param count Count of bytes to be written
-     * @throws IOException in case something went wrong with the output stream
+     * Zapise bytovy buffer do vystupniho streamu.
+     * Nejprve zkontroluje, jestli byla zapsana WAVE hlavicka.
+     * @param buffer Data k zapsani.
+     * @param start Pocatecni pozice v bufferu.
+     * @param count Pocet bytu k zapisu.
+     * @throws IOException pri problemu s vystupnimi streamem.
      */
     public void write(byte[] buffer, int start, int count) throws IOException {
         synchronized (writeLock) {
@@ -72,10 +68,9 @@ public class WaveFileWriter {
     }
 
     /**
-     * Write lower 8 bits of the int parameter to the output stream.
-     * Upper bits are ignored.
-     * @param b Byte (int) to be written to the stream
-     * @throws IOException in case something went wrong with the stream
+     * Zapise spodnich 8 bitu parametru do streamu
+     * @param b Byte (int) k zapisu do streamu
+     * @throws IOException pro problemech se streamem
      */
     private void writeByte(int b) throws IOException {
         outputStream.write(b);
@@ -83,7 +78,9 @@ public class WaveFileWriter {
     }
 
     /**
-     * Write a 32 bit integer to the stream in Little Endian format.
+     * Zapise 32bitovy int ve formatu Little Endian do vystupniho streamu.
+     * @param n Int k zapisu
+     * @throws IOException pro problemech se streamem
      */
     public void writeIntLittle(int n) throws IOException {
         writeByte(n);
@@ -93,7 +90,9 @@ public class WaveFileWriter {
     }
 
     /**
-     * Write a 16 bit integer to the stream in Little Endian format.
+     * Zapise 16bitovy short ve formatu Little Endian do vystupniho streamu.
+     * @param n Short k zapisu
+     * @throws IOException pro problemech s vystupnim streamem
      */
     public void writeShortLittle(short n) throws IOException {
         writeByte(n);
@@ -101,7 +100,8 @@ public class WaveFileWriter {
     }
 
     /**
-     * Write a simple WAV header for PCM data.
+     * Zapise WAVE header pro PCM data.
+     * @throws IOException pro problemech s vystupnim streamem
      */
     private void writeHeader() throws IOException {
         writeRiffHeader();
@@ -112,7 +112,8 @@ public class WaveFileWriter {
     }
 
     /**
-     * Write a 'RIFF' file header and a 'WAVE' ID to the WAV file.
+     * Zapise 'RIFF' hlavicku a 'WAVE' ID do soubou WAV.
+     * @throws IOException pro problemech s vystupnim streamem
      */
     private void writeRiffHeader() throws IOException {
         writeByte('R');
@@ -128,9 +129,11 @@ public class WaveFileWriter {
     }
 
     /**
-     * Write an 'fmt ' chunk to the WAV file containing the given information.
+     * Zapise 'fmt ' chunk do souboru WAV
+     * @throws IOException pro problemech s vystupnim streamem
      */
     public void writeFormatChunk() throws IOException {
+        int bitsPerSample = 16;
         int bytesPerSample = (bitsPerSample + 7) / 8;
 
         writeByte('f');
@@ -139,7 +142,9 @@ public class WaveFileWriter {
         writeByte(' ');
         writeIntLittle(16); // chunk size
         writeShortLittle(WAVE_FORMAT_PCM);
+        int samplesPerFrame = 1;
         writeShortLittle((short) samplesPerFrame);
+        int frameRate = 44100;
         writeIntLittle(frameRate);
         // bytes/second
         writeIntLittle(frameRate * samplesPerFrame * bytesPerSample);
@@ -149,8 +154,7 @@ public class WaveFileWriter {
     }
 
     /**
-     * Write a 'data' chunk header to the WAV file. This should be followed by call to
-     * writeShortLittle() to write the data to the chunk.
+     * Zapise hlavicku 'data' chunku do WAV souboru.
      */
     public void writeDataChunkHeader() throws IOException {
         writeByte('d');
@@ -162,11 +166,11 @@ public class WaveFileWriter {
     }
 
     /**
-     * Fix RIFF and data chunk sizes based on final size. Assume data chunk is the last chunk.
+     * Opravi velikosti RIFF a data chunk podle vysledne velikosti. Predpoklada, ze data chunk je posledni chunk.
+     * @throws IOException pro problemech s vystupnim streamem
      */
     private void fixSizes() throws IOException {
-        RandomAccessFile randomFile = new RandomAccessFile(outputFile, "rw");
-        try {
+        try (RandomAccessFile randomFile = new RandomAccessFile(outputFile, "rw")) {
             // adjust RIFF size
             long end = bytesWritten;
             int riffSize = (int) (end - riffSizePosition) - 4;
@@ -176,8 +180,6 @@ public class WaveFileWriter {
             int dataSize = (int) (end - dataSizePosition) - 4;
             randomFile.seek(dataSizePosition);
             writeRandomIntLittle(randomFile, dataSize);
-        } finally {
-            randomFile.close();
         }
     }
 

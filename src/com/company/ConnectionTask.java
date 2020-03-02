@@ -5,7 +5,6 @@
 package com.company;
 
 import javax.sound.sampled.SourceDataLine;
-import java.io.IOException;
 
 public class ConnectionTask implements Runnable{
 
@@ -16,13 +15,13 @@ public class ConnectionTask implements Runnable{
     private final SourceDataLine sourceDataLine;
 
     /**
-     * Constructor
+     * Konstruktor.
      *
-     * @param conn Current connection
-     * @param receivedData Data to be handled
-     * @param receivedDataLength Length of the data
-     * @param active Is the connection active?
-     * @param sdl SourceDataLine in case the connection is active
+     * @param conn Aktualni spojeni
+     * @param receivedData Data ke zpracovani
+     * @param receivedDataLength Delka dat
+     * @param active Je spojeni aktivni?
+     * @param sdl SourceDataLine pro pripad, ze se spojeni ma prehrat
      */
     public ConnectionTask(Connection conn, byte[] receivedData, int receivedDataLength, boolean active, SourceDataLine sdl){
         connection = conn;
@@ -33,7 +32,7 @@ public class ConnectionTask implements Runnable{
     }
 
     /**
-     * Decide what to do with received data and than do it.
+     * Rozhodne, jak zpracovat prijata data.
      */
     @Override
     public void run() {
@@ -42,19 +41,20 @@ public class ConnectionTask implements Runnable{
         } else {
             toRingBuffer(data, dataLength, connection);
         }
-
-        // If this connection is supposed to be active,
-        // play the received sound on the speakers
         if (activeConnection) {
             toSpeaker(data, dataLength);
         }
     }
 
     /**
-     * Play the received data on the speaker.
+     * Prehraje data v reproduktorech.
+     * Inspirovano otazkou "Save live audio streaming to wave file in Java" na StackOverflow
+     * a jeji prijatou odpovedi.
+     * autori: Sadegh Bakhshandeh Sajjad, dieter
+     * dostupne z: https://stackoverflow.com/questions/49811545/save-live-audio-streaming-to-wave-file-in-java
      *
-     * @param soundbytes Data to play.
-     * @param length     Length of the data o play/
+     * @param soundbytes Data k prehravani.
+     * @param length Delka dat.
      */
     public void toSpeaker(byte[] soundbytes, int length) {
         synchronized (sourceDataLine) {
@@ -69,25 +69,20 @@ public class ConnectionTask implements Runnable{
 
 
     /**
-     * Write the chunk of data to the output file.
-     * @param data Data to be written
-     * @param dataLength Length of the data to be written
-     * @param connection Connection which the data belong to
+     * Zapise data do vystupniho souboru.
+     * @param data Data k zapsani
+     * @param dataLength Delka dat
+     * @param connection Spojeni, kteremu data patri
      */
     private void toFile(byte[] data, int dataLength, Connection connection) {
-        try {
-            connection.wfWriter.write(data, 0, dataLength);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        connection.writeToFile(data, dataLength);
     }
 
     /**
-     * Write the chunk of data to the ring buffer oof the
-     * connection the data came from
-     * @param data Data to be written
-     * @param dataLength Length of the data to be written
-     * @param conn Connection which the data belong to
+     * Prida data do bufferu spojeni, kteremu data patri.
+     * @param data Data k zapsani
+     * @param dataLength Delka dat
+     * @param conn Spojeni, kteremu data patri
      */
     private void toRingBuffer(byte[] data, int dataLength, Connection conn) {
         conn.writeToBuffer(data, dataLength);

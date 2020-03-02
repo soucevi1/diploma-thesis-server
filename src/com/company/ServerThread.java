@@ -8,7 +8,6 @@
 package com.company;
 
 import javax.sound.sampled.*;
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
@@ -18,11 +17,11 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class ServerThread implements Runnable {
 
-    volatile boolean status = true;
+    public volatile boolean status = true;
 
-    volatile AtomicReference<String> activeConnection = new AtomicReference<>();
-    Map<String, Connection> connections;
-    final int connectionTimeout = 2000; // 2 seconds
+    public volatile AtomicReference<String> activeConnection = new AtomicReference<>();
+    public Map<String, Connection> connections;
+    private final int connectionTimeout = 2000; // 2 seconds
 
     private Thread t;
     private ExecutorService pool;
@@ -36,22 +35,18 @@ public class ServerThread implements Runnable {
 
     private DatagramSocket serverSocket;
 
-    int ringBufferSize;
-    int maxMemorySize;
-    int threadCount;
+    private int ringBufferSize;
 
     /**
-     * Constructor.
-     * Initialize max number of connections and calculate the buffer sizes for connections
+     * Konstruktor.
+     * Inicializuje maximalni velikost bufferu a threadpool pro zpracovavani prijatych dat.
      *
-     * @param maxMemory Maximum memory size that can be used by the thread to pre-record audio.
-     * @param threadCnt Number of threads used.
+     * @param maxMemory Maximalni velikost bufferu (v MB) pro prednahravani spojeni.
+     * @param threadCnt Pocet vlaken pro zpracovavani prijatych dat.
      */
     public ServerThread(int maxMemory, int threadCnt) {
-        maxMemorySize = maxMemory * 1000000;
-        threadCount = threadCnt;
-        ringBufferSize = maxMemorySize;
-        pool = Executors.newFixedThreadPool(threadCount);
+        ringBufferSize = maxMemory * 1000000;
+        pool = Executors.newFixedThreadPool(threadCnt);
         activeConnection.set("");
 
         System.out.println("[-] Buffers size set to: " + ringBufferSize + " B. (~ prerecorded " +
@@ -60,16 +55,10 @@ public class ServerThread implements Runnable {
     }
 
     /**
-     * Main method of the ServerThread.
-     * Initialize the audio system and then in the loop:
-     * - receive data
-     * - save the data to the connection buffer
-     * - optionally write the data to the file and/or play them in speakers
-     * <p>
-     * This method was inspired by the StackOverflow question "Save live audio streaming to wave file in Java"
-     * and its accepted answer.
-     * authors: Sadegh Bakhshandeh Sajjad, dieter
-     * available at: https://stackoverflow.com/questions/49811545/save-live-audio-streaming-to-wave-file-in-java
+     * Hlavni metoda teto tridy.
+     * Inicializuje prvky pro prehravani zvuku a pak v cyklu:
+     * - prijme data
+     * - vytvori objekt ConnectionTask a necha pool, aby ho zpracoval
      */
     @Override
     public void run() {
@@ -93,21 +82,14 @@ public class ServerThread implements Runnable {
          * 8000+512
          */
 
-        // Initialize Audio player
         initializeAudioPlayer();
 
-        // Initialize connection list
         connections = new ConcurrentHashMap<>();
 
         startTimeoutChecker();
 
-        // Run until user changes status
         while (status) {
-
-            // Receive packet with some data
             DatagramPacket packet = receivePacket();
-
-            // Find who sent the packet
             String senderID = getSenderID(packet);
 
             if (!connections.containsKey(senderID)) {
@@ -119,7 +101,7 @@ public class ServerThread implements Runnable {
 
             currentConnection.updateTimestamp();
 
-            // If no connection is active, make this one active
+            // Pokud neexistuje aktivni spojeni, bude aktivni toho aktualni
             if (activeConnection.get().equals("")) {
                 activeConnection.set(senderID);
                 System.out.println("[-] Active connection: " + activeConnection);
@@ -127,13 +109,10 @@ public class ServerThread implements Runnable {
 
             byte[] data = packet.getData();
             int dataLength = packet.getLength();
-
-            // Decide what to do with received data
             Runnable task = new ConnectionTask(currentConnection, data, dataLength, senderID.equals(activeConnection.get()), sourceDataLine);
             pool.execute(task);
         }
 
-        // Exit the application
         System.out.println("[-] Thread exiting");
         timeoutChecker.shutdown();
         pool.shutdown();
@@ -142,11 +121,13 @@ public class ServerThread implements Runnable {
     }
 
     /**
-     * Check every connection if it timed out.
+     * Kontrola, jestli nejake spojeni neni hluche.
+     * Kazde 3 vteriny se zkontroluje, jestli od nektereho ze spojeni
+     * neprestala po nejakou dobu chodit data. Pokud ano, spojeni je odstraneno.
      * <p>
-     * The periodical execution was inspired by the answer to the StackOverflow question "Java Thread every X seconds"
-     * authors: Matt Ball, cletus
-     * available at: https://stackoverflow.com/a/3541686/6136143
+     * Periodicke spousteni vlakna bylo inspirovano odpovedi na StackOverflow otazku "Java Thread every X seconds"
+     * autori: Matt Ball, cletus
+     * dostupne z: https://stackoverflow.com/a/3541686/6136143
      */
     private void startTimeoutChecker() {
         timeoutChecker = Executors.newSingleThreadScheduledExecutor();
@@ -161,9 +142,10 @@ public class ServerThread implements Runnable {
     }
 
     /**
-     * Remove connection from the list.
+     * Odstrani spojeni ze seznamu.
+     * Pokud se spojeni zrovna nahrava, je nahravani zastaveno.
      *
-     * @param connectionID ID of the connection to be removed
+     * @param connectionID ID spojeni, ktere se ma odstranit.
      */
     public void removeConnection(String connectionID) {
         if (connectionID.equals(activeConnection.get())) {
@@ -181,7 +163,7 @@ public class ServerThread implements Runnable {
     }
 
     /**
-     * Start the thread.
+     * Spusti kod objektu v oddelenem vlakne.
      */
     void start() {
         System.out.println("[-] Starting the server thread.");
@@ -192,9 +174,9 @@ public class ServerThread implements Runnable {
     }
 
     /**
-     * Receive packet from any source.
+     * Prijme paket od jakehokoliv zdroje.
      *
-     * @return DatagramPacket with received data.
+     * @return DatagramPacket s daty.
      */
     private DatagramPacket receivePacket() {
         DatagramPacket packet = new DatagramPacket(receiveData, receiveData.length);
@@ -207,10 +189,10 @@ public class ServerThread implements Runnable {
     }
 
     /**
-     * Initialize all object needed to play audio.
-     * This method is inspired by theStackOverflow question "Stream Live Android Audio To Server"
-     * author (the question and the answer as well): chuckliddell0
-     * available at: https://stackoverflow.com/questions/15349987/stream-live-android-audio-to-server
+     * Inicializuje vsechny objekty potrebne pro prehravani zvuku.
+     * Inspirovano otazkou na StackOverflow "Stream Live Android Audio To Server" a odpovedi na ni.
+     * autor otazky i odpovedi: chuckliddell0
+     * dostupne z: https://stackoverflow.com/questions/15349987/stream-live-android-audio-to-server
      */
     private void initializeAudioPlayer() {
         AudioFormat format = new AudioFormat(sampleRate, 16, 1, true, false);
@@ -234,11 +216,11 @@ public class ServerThread implements Runnable {
     }
 
     /**
-     * Parse the received packet and get its
-     * source IP address and port.
+     * Ziska zdrojovou IP adresu a port z
+     * prijateho paketu.
      *
-     * @param packet Received DatagramPacket with data.
-     * @return IP and port as String in format IP:port
+     * @param packet Prijaty DatagramPacket.
+     * @return IP a port jako String ve formatu IP:port
      */
     private String getSenderID(DatagramPacket packet) {
         String addr = packet.getAddress().toString();
