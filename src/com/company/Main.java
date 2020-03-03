@@ -1,12 +1,11 @@
-// Tento kod je soucast diplomove prace Vyuziti zranitelnosti Janus na operacnim systemu Android
-// Autor: Bc. Vit Soucek
+// Tento kód je součást diplomové práce "Využití zranitelnosti Janus na operačním systému Android"
+// Autor: Bc. Vít Souček (soucevi1@fit.cvut.cz)
 //
-// Pouzite zdroje:
-//    - zminene primo v kodu v dokumentacnich komentarich
+// Použité zdroje:
+//    - zmíněné v dokumentačních komentářích
 
 package com.company;
 
-import java.io.IOException;
 import java.util.Scanner;
 
 class Server {
@@ -15,13 +14,13 @@ class Server {
     private static int threadCount = 8;
 
     /**
-     * Vstupni bod programu.
+     * Vstupní bod programu.
      * <p>
-     * Inicializuje hlavni vlakno serveru, ukaze napovedu
-     * a pote nacita a interpretuje vstup uzivatele.
+     * Inicializuje hlavni vlákno serveru, ukáže nápovědu
+     * a poté načítá a interpretuje vstup uživatele.
      *
-     * @param args Dva argumenty -- maximalni povolena pamet pro prednahravani jednotlivzych spojeni
-     *             a pocet vlaken, ktere budou zpracovavat prijata data.
+     * @param args Dva argumenty -- maximální povolená paměť pro přednahrávání jednotlivých spojení
+     *             a počet vláken, která budou zpracovávat přijatá data.
      */
     public static void main(String[] args) {
 
@@ -78,8 +77,8 @@ class Server {
     }
 
     /**
-     * Nacteni argumentu z prikazove radky
-     * @param args Pole retezcu s argumenty
+     * Načtení argumentu z příkazové řádky
+     * @param args Pole řetězců s argumenty
      */
     private static void parseArguments(String[] args) {
         if (args.length == 0) {
@@ -123,7 +122,7 @@ class Server {
     }
 
     /**
-     * Ukaze text s navodem ke spusteni aplikace.
+     * Ukáže text s návodem ke spuštění aplikace.
      */
     private static void showUsage() {
         System.out.println("Usage:");
@@ -134,12 +133,12 @@ class Server {
     }
 
     /**
-     * Yastavi nahravani spojeni predaneho v parametru
+     * Zastaví nahrávání spojení předaného v parametru
      * <p>
-     * Pokud connectionID je "a" nebo "active", nahradi
-     * ho ID aktivniho spojeni.
+     * Pokud connectionID je "a" nebo "active", nahradí
+     * ho ID aktivního spojení.
      *
-     * @param connectionID ID spojeni, ktere ma byt zastaveno.
+     * @param connectionID ID spojení, které má být zastaveno.
      */
     private static void stopRecording(String connectionID) {
         if (connectionID.equals("a") || connectionID.equals("active")) {
@@ -161,11 +160,11 @@ class Server {
     }
 
     /**
-     * Zacne nahravat spojeni predane v parametru
-     * Pokud connectionID je "a" nebo "active", nahradi
-     * ho ID aktivniho spojeni.
+     * Začne nahrávat spojení předané v parametru
+     * Pokud connectionID je "a" nebo "active", nahradí
+     * ho ID aktivního spojení.
      *
-     * @param connectionID ID spojeni, ktere ma byt nahravano
+     * @param connectionID ID spojení, které má být nahráváno
      */
     private static void startRecording(String connectionID) {
         if (connectionID.equals("a") || connectionID.equals("active")) {
@@ -187,9 +186,9 @@ class Server {
     }
 
     /**
-     * Odebere spojeni predane v parametru ze seznamu vsech spojeni.
+     * Odebere spojení předané v parametru ze seznamu všech spojení.
      *
-     * @param connectionID Spojeni, ktere ma byt odebrano
+     * @param connectionID Spojení, které má být odebráno
      */
     private static void removeConnection(String connectionID) {
         if (connectionID.equals("a") || connectionID.equals("active"))
@@ -201,19 +200,19 @@ class Server {
     }
 
     /**
-     * Kontroluje, jestli ID spojeni z parametru ma spravny format
+     * Kontroluje, jestli ID spojení z parametru másprávný formát
      * <p>
-     * Korektni ID spojeni vzdy ma nasledujici tvar:
+     * Korektní ID spojení vždy má následující tvar:
      * IP:port
      * <p>
-     * Krome formatu je kontrolovana platnost IP adresy (0-255) a portu (0-65535)
+     * Kromě formátu je kontrolována platnost IP adresy (0-255) a portu (0-65535)
      * <p>
-     * Inspirovano odpovedi na otazku "Validate IPv4 address in Java" na StackOverflow.
-     * autor odpovedi: Akarshit Wal
-     * dostupne z: https://stackoverflow.com/a/30691451/6136143
+     * Inspirováno odpovědí na otázku "Validate IPv4 address in Java" na StackOverflow.
+     * autor odpovědi: Akarshit Wal
+     * dostupné z: https://stackoverflow.com/a/30691451/6136143
      *
-     * @param connectionID ID spojeni, ktere ma byt overeno
-     * @return True pokud je ID platne, jinak false
+     * @param connectionID ID spojení, které má být ověřeno
+     * @return True pokud je ID platné, jinak false
      */
     private static boolean verifyConnectionFormat(String connectionID) {
         String[] split_conn = connectionID.split(":");
@@ -240,11 +239,11 @@ class Server {
     }
 
     /**
-     * Spojeni predane v parametru nastavi jako aktivni
+     * Spojení předané v parametru nastaví jako aktivní
      * <p>
-     * ID spojeni je nejprve overeno.
+     * ID spojení je nejprve ověřeno.
      *
-     * @param connectionID ID spojeni, ktere ma byt aktivni
+     * @param connectionID ID spojení, které má být aktivní
      */
     private static void switchToConnection(String connectionID) {
         if (verifyConnectionFormat(connectionID)) {
@@ -258,7 +257,7 @@ class Server {
     }
 
     /**
-     * Vypise seznam vsech aktualnich spojeni.
+     * Vypíše seznam všech aktuálních spojení.
      */
     private static void listConnections() {
         System.out.println("----------------------------------------");
@@ -272,7 +271,7 @@ class Server {
     }
 
     /**
-     * Vypise navod k pouziti.
+     * Vypíše návod k použití.
      */
     private static void showHelp() {
         System.out.println();
@@ -306,7 +305,7 @@ class Server {
     }
 
     /**
-     * Vypise uvitaci obrazovku.
+     * Vypíše uvítací obrazovku.
      */
     private static void showWelcomeScreen(){
         System.out.println("   ___                         _____                          \n" +

@@ -1,8 +1,8 @@
-// Tento kod je soucast diplomove prace Vyuziti zranitelnosti Janus na operacnim systemu Android
-// Autor: Bc. Vit Soucek
+// Tento kód je součást diplomové práce "Využití zranitelnosti Janus na operačním systému Android"
+// Autor: Bc. Vít Souček (soucevi1@fit.cvut.cz)
 //
-// Pouzite zdroje:
-//    - zminene primo v kodu v dokumentacnich komentarich
+// Použité zdroje:
+//    - zmíněné přímo v dokumentačních komentářích
 
 
 package com.company;
@@ -21,7 +21,7 @@ public class ServerThread implements Runnable {
 
     public volatile AtomicReference<String> activeConnection = new AtomicReference<>();
     public Map<String, Connection> connections;
-    private final int connectionTimeout = 2000; // 2 seconds
+    private final int connectionTimeout = 2000; // 2 sekundy
 
     private Thread t;
     private ExecutorService pool;
@@ -39,10 +39,10 @@ public class ServerThread implements Runnable {
 
     /**
      * Konstruktor.
-     * Inicializuje maximalni velikost bufferu a threadpool pro zpracovavani prijatych dat.
+     * Inicializuje maximální velikost bufferu a threadpool pro zpracovávání přijatých dat.
      *
-     * @param maxMemory Maximalni velikost bufferu (v MB) pro prednahravani spojeni.
-     * @param threadCnt Pocet vlaken pro zpracovavani prijatych dat.
+     * @param maxMemory Maximální velikost bufferu (v MB) pro přednahrávání spojení.
+     * @param threadCnt Počet vláken pro zpracovávání přijatých dat.
      */
     public ServerThread(int maxMemory, int threadCnt) {
         ringBufferSize = maxMemory * 1000000;
@@ -55,10 +55,10 @@ public class ServerThread implements Runnable {
     }
 
     /**
-     * Hlavni metoda teto tridy.
-     * Inicializuje prvky pro prehravani zvuku a pak v cyklu:
-     * - prijme data
-     * - vytvori objekt ConnectionTask a necha pool, aby ho zpracoval
+     * Hlavní metoda této třídy.
+     * Inicializuje prvky pro přehrávání zvuku a pak v cyklu:
+     * - přijme data
+     * - vytvoří objekt ConnectionTask a nechá pool, aby ho zpracoval
      */
     @Override
     public void run() {
@@ -101,7 +101,7 @@ public class ServerThread implements Runnable {
 
             currentConnection.updateTimestamp();
 
-            // Pokud neexistuje aktivni spojeni, bude aktivni toho aktualni
+            // Pokud neexistuje aktivní spojení, bude aktivní toto aktualní
             if (activeConnection.get().equals("")) {
                 activeConnection.set(senderID);
                 System.out.println("[-] Active connection: " + activeConnection);
@@ -121,13 +121,13 @@ public class ServerThread implements Runnable {
     }
 
     /**
-     * Kontrola, jestli nejake spojeni neni hluche.
-     * Kazde 3 vteriny se zkontroluje, jestli od nektereho ze spojeni
-     * neprestala po nejakou dobu chodit data. Pokud ano, spojeni je odstraneno.
+     * Kontrola, jestli nějaké spojení není hluché.
+     * Každé 3 vteřiny se zkontroluje, jestli od některého ze spojení
+     * nepřestala po nějakou dobu chodit data. Pokud ano, spojení je odstraněno.
      * <p>
-     * Periodicke spousteni vlakna bylo inspirovano odpovedi na StackOverflow otazku "Java Thread every X seconds"
-     * autori: Matt Ball, cletus
-     * dostupne z: https://stackoverflow.com/a/3541686/6136143
+     * Periodické spouštění vlákna bylo inspirováno odpovědí na StackOverflow.com otázku "Java Thread every X seconds"
+     * autoři: Matt Ball, cletus
+     * dostupné z: https://stackoverflow.com/a/3541686/6136143
      */
     private void startTimeoutChecker() {
         timeoutChecker = Executors.newSingleThreadScheduledExecutor();
@@ -142,10 +142,10 @@ public class ServerThread implements Runnable {
     }
 
     /**
-     * Odstrani spojeni ze seznamu.
-     * Pokud se spojeni zrovna nahrava, je nahravani zastaveno.
+     * Odstraní spojení ze seznamu.
+     * Pokud se spojení zrovna nahrává, je nahrávání zastaveno.
      *
-     * @param connectionID ID spojeni, ktere se ma odstranit.
+     * @param connectionID ID spojení, které se má odstranit.
      */
     public void removeConnection(String connectionID) {
         if (connectionID.equals(activeConnection.get())) {
@@ -163,7 +163,7 @@ public class ServerThread implements Runnable {
     }
 
     /**
-     * Spusti kod objektu v oddelenem vlakne.
+     * Spustí kód objektu v odděleném vlákně.
      */
     void start() {
         System.out.println("[-] Starting the server thread.");
@@ -174,7 +174,7 @@ public class ServerThread implements Runnable {
     }
 
     /**
-     * Prijme paket od jakehokoliv zdroje.
+     * Přijme paket od jakéhokoliv zdroje.
      *
      * @return DatagramPacket s daty.
      */
@@ -189,10 +189,10 @@ public class ServerThread implements Runnable {
     }
 
     /**
-     * Inicializuje vsechny objekty potrebne pro prehravani zvuku.
-     * Inspirovano otazkou na StackOverflow "Stream Live Android Audio To Server" a odpovedi na ni.
-     * autor otazky i odpovedi: chuckliddell0
-     * dostupne z: https://stackoverflow.com/questions/15349987/stream-live-android-audio-to-server
+     * Inicializuje všechny objekty potřebné pro přehrávání zvuku.
+     * Inspirováno otázkou na StackOverflow.com "Stream Live Android Audio To Server" a odpovědí na ni.
+     * autor otázky i odpovědi: chuckliddell0
+     * dostupné z: https://stackoverflow.com/questions/15349987/stream-live-android-audio-to-server
      */
     private void initializeAudioPlayer() {
         AudioFormat format = new AudioFormat(sampleRate, 16, 1, true, false);
@@ -216,11 +216,11 @@ public class ServerThread implements Runnable {
     }
 
     /**
-     * Ziska zdrojovou IP adresu a port z
-     * prijateho paketu.
+     * Získá zdrojovou IP adresu a port z
+     * přijatého paketu.
      *
-     * @param packet Prijaty DatagramPacket.
-     * @return IP a port jako String ve formatu IP:port
+     * @param packet Přijatý DatagramPacket.
+     * @return IP a port jako String ve formátu IP:port
      */
     private String getSenderID(DatagramPacket packet) {
         String addr = packet.getAddress().toString();

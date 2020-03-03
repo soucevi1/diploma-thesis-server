@@ -1,5 +1,5 @@
-// Tento kod je soucast diplomove prace Vyuziti zranitelnosti Janus na operacnim systemu Android
-// Autor: Bc. Vit Soucek
+// Tento kód je součást diplomové práce "Využití zranitelnosti Janus na operačním systému Android"
+// Autor: Bc. Vít Souček (soucevi1@fit.cvut.cz)
 
 package com.company;
 
@@ -23,10 +23,10 @@ public class Connection implements Comparable<Connection> {
 
     /**
      * Konstruktor.
-     * Inicializuje ID, vytvori buffer a zaznamena, kdy bylo spojeni vytvoreno.
+     * Inicializuje ID, vytvoří buffer a zaznamená, kdy bylo spojení vytvořeno.
      *
-     * @param connId String ve formatu "IP:port", ktery spojeni identifikuje.
-     * @param bufferSize Velikost bufferu na prednahravani
+     * @param connId String ve formátu "IP:port", který spojení identifikuje.
+     * @param bufferSize Velikost bufferu na přednahrávání
      */
     public Connection(String connId, int bufferSize) {
         id = connId;
@@ -35,10 +35,10 @@ public class Connection implements Comparable<Connection> {
     }
 
     /**
-     * Zacatek nahravani tohoto spojeni.
-     * Je vytvoren novy soubor, inicializovan WaveFileWriter stream.
-     * buffer je zapsan do souboru priznak Recording je nastaven na true.
-     * Pokud je spojeni jiz nahravano, metoda pouze skonci.
+     * Začátek nahrávání tohoto spojení.
+     * Je vytvořen nový soubor, inicializován WaveFileWriter stream.
+     * buffer je zapsán do souboru, příznak Recording je nastaven na true.
+     * Pokud je spojení již nahráváno, metoda pouze skončí.
      */
     public void startRecording() {
         if (isRecording()) {
@@ -70,14 +70,14 @@ public class Connection implements Comparable<Connection> {
     }
 
     /**
-     * Aktualizuje cas poslednich prijatych dat.
+     * Aktualizuje čas posledních přijatých dat.
      */
     public void updateTimestamp() {
         dataLastReceived = System.currentTimeMillis();
     }
 
     /**
-     * Zapise buffer do souboru jeste pred jakakoliv nove nahrana data.
+     * Zapíše buffer do souboru ještě před jakákoliv nově nahraná data.
      */
     private void writeBufferToFile() {
         byte[] data;
@@ -94,17 +94,17 @@ public class Connection implements Comparable<Connection> {
     }
 
     /**
-     * Zjisti, jestli toto spojeni je jiz nahravane do souboru.
+     * Zjistí, jestli toto spojení je již nahrávané do souboru.
      *
-     * @return true pokud je spojeni jiz nahravano, jinak false.
+     * @return true pokud je spojení již nahráváno, jinak false.
      */
     public boolean isRecording() {
         return recording;
     }
 
     /**
-     * Zastavi nahravani tohoto spojeni.
-     * Priznak Recording je nastaven na false a je uzavren vystupni stream.
+     * Zastaví nahrávání tohoto spojení.
+     * Příznak Recording je nastaven na false a je uzavřen výstupní stream.
      */
     public void stopRecording() {
         if (!isRecording()) {
@@ -121,19 +121,19 @@ public class Connection implements Comparable<Connection> {
     }
 
     /**
-     * Zapise prijata data do bufferu.
+     * Zapíše přijatá data do bufferu.
      *
-     * @param data Prijata data.
-     * @param dataLength Delka dat.
+     * @param data Přijatá data.
+     * @param dataLength Délka dat.
      */
     public void writeToBuffer(byte[] data, int dataLength) {
         buffer.write(data, 0, dataLength);
     }
 
     /**
-     * Zapise prijata data do souboru.
-     * @param data Prijata data.
-     * @param dataLength Delka prijatych dat.
+     * Zapíše přijatá data do souboru.
+     * @param data Přijatá data.
+     * @param dataLength Délka přijatých dat.
      */
     public void writeToFile(byte[] data, int dataLength){
         try {
@@ -144,10 +144,10 @@ public class Connection implements Comparable<Connection> {
     }
 
     /**
-     * Vytvori jmeno pro novou nahravku.
-     * Jmeno ma format "connectionID_timestamp.wav"
+     * Vytvoří jméno pro novou nahrávku.
+     * Jméno má formát "connectionID_timestamp.wav"
      *
-     * @return The newly created filename.
+     * @return Nově vytvořené jméno souboru
      */
     private String createFilename() {
         String modifiedID = id.replace(":", ".");
@@ -156,7 +156,7 @@ public class Connection implements Comparable<Connection> {
     }
 
     /**
-     * Porovnani objektu Connection (abecedne dle ID)
+     * Porovnání objektu Connection (abecedně dle ID)
      */
     @Override
     public int compareTo(Connection connection) {

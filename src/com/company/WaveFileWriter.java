@@ -1,11 +1,11 @@
-// Tento kod je soucast diplomove prace Vyuziti zranitelnosti Janus na operacnim systemu Android
-// Autor: Bc. Vit Soucek
+// Tento kód je součást diplomové práce "Využití zranitelnosti Janus na operačním systému Android"
+// Autor: Bc. Vít Souček (soucevi1@fit.cvut.cz)
 //
-// Pouzite zdroje:
-//    - trida WaveFileWriter, soucast balicku jsyn
+// Použité zdroje:
+//    - třída WaveFileWriter, součást balíčku jsyn
 //          autor: Phil Burk
-//          dostupne z: https://github.com/philburk/jsyn/blob/master/src/com/jsyn/util/WaveFileWriter.java
-//          Ze zdroje je prebrano vse v tomto souboru krome metody write(byte[] buffer, int start, int count)
+//          dostupné z: https://github.com/philburk/jsyn/blob/master/src/com/jsyn/util/WaveFileWriter.java
+//          Ze zdroje je převzato vše v tomto souboru kromě metody write(byte[] buffer, int start, int count)
 
 package com.company;
 
@@ -30,8 +30,8 @@ public class WaveFileWriter {
     /**
      * Konstruktor.
      *
-     * @param outputFile Soubor, kam se zapise vystup.
-     * @throws FileNotFoundException pokud soubor nexistuje.
+     * @param outputFile Soubor, kam se zapíše výstup.
+     * @throws FileNotFoundException pokud soubor neexistuje.
      */
     public WaveFileWriter(File outputFile) throws FileNotFoundException {
         this.outputFile = outputFile;
@@ -40,8 +40,8 @@ public class WaveFileWriter {
     }
 
     /**
-     * Zavre vystupni stream.
-     * @throws IOException pokud je problem se streamem
+     * Zavře výstupní stream.
+     * @throws IOException pokud je problém se streamem
      */
     public void close() throws IOException {
         outputStream.close();
@@ -49,12 +49,12 @@ public class WaveFileWriter {
     }
 
     /**
-     * Zapise bytovy buffer do vystupniho streamu.
-     * Nejprve zkontroluje, jestli byla zapsana WAVE hlavicka.
-     * @param buffer Data k zapsani.
-     * @param start Pocatecni pozice v bufferu.
-     * @param count Pocet bytu k zapisu.
-     * @throws IOException pri problemu s vystupnimi streamem.
+     * Zapíše bytový buffer do výstupního streamu.
+     * Nejprve zkontroluje, jestli byla zapsána WAVE hlavička.
+     * @param buffer Data k zapsání.
+     * @param start Počáteční pozice v bufferu.
+     * @param count Počet bytu k zápisu.
+     * @throws IOException při problému s výstupním streamem.
      */
     public void write(byte[] buffer, int start, int count) throws IOException {
         synchronized (writeLock) {
@@ -68,9 +68,9 @@ public class WaveFileWriter {
     }
 
     /**
-     * Zapise spodnich 8 bitu parametru do streamu
-     * @param b Byte (int) k zapisu do streamu
-     * @throws IOException pro problemech se streamem
+     * Zapíše spodních 8 bitů parametru do streamu
+     * @param b Byte (int) k zápisu do streamu
+     * @throws IOException při problémech se streamem
      */
     private void writeByte(int b) throws IOException {
         outputStream.write(b);
@@ -78,9 +78,9 @@ public class WaveFileWriter {
     }
 
     /**
-     * Zapise 32bitovy int ve formatu Little Endian do vystupniho streamu.
-     * @param n Int k zapisu
-     * @throws IOException pro problemech se streamem
+     * Zapíše 32bitový int ve formátu Little Endian do výstupního streamu.
+     * @param n Int k zápisu
+     * @throws IOException při problémech se streamem
      */
     public void writeIntLittle(int n) throws IOException {
         writeByte(n);
@@ -90,9 +90,9 @@ public class WaveFileWriter {
     }
 
     /**
-     * Zapise 16bitovy short ve formatu Little Endian do vystupniho streamu.
-     * @param n Short k zapisu
-     * @throws IOException pro problemech s vystupnim streamem
+     * Zapíše 16bitový short ve formátu Little Endian do výstupního streamu.
+     * @param n Short k zápisu
+     * @throws IOException při problémech s výstupním streamem
      */
     public void writeShortLittle(short n) throws IOException {
         writeByte(n);
@@ -100,8 +100,8 @@ public class WaveFileWriter {
     }
 
     /**
-     * Zapise WAVE header pro PCM data.
-     * @throws IOException pro problemech s vystupnim streamem
+     * Zapíše WAVE header pro PCM data.
+     * @throws IOException při problémech s výstupním streamem
      */
     private void writeHeader() throws IOException {
         writeRiffHeader();
@@ -112,8 +112,8 @@ public class WaveFileWriter {
     }
 
     /**
-     * Zapise 'RIFF' hlavicku a 'WAVE' ID do soubou WAV.
-     * @throws IOException pro problemech s vystupnim streamem
+     * Zapíše 'RIFF' hlavičku a 'WAVE' ID do souboru WAV.
+     * @throws IOException při problémech s výstupním streamem
      */
     private void writeRiffHeader() throws IOException {
         writeByte('R');
@@ -129,8 +129,8 @@ public class WaveFileWriter {
     }
 
     /**
-     * Zapise 'fmt ' chunk do souboru WAV
-     * @throws IOException pro problemech s vystupnim streamem
+     * Zapíše 'fmt' chunk do souboru WAV
+     * @throws IOException při problémech s výstupním streamem
      */
     public void writeFormatChunk() throws IOException {
         int bitsPerSample = 16;
@@ -154,7 +154,7 @@ public class WaveFileWriter {
     }
 
     /**
-     * Zapise hlavicku 'data' chunku do WAV souboru.
+     * Zapíše hlavičku 'data' chunku do WAV souboru.
      */
     public void writeDataChunkHeader() throws IOException {
         writeByte('d');
@@ -166,8 +166,8 @@ public class WaveFileWriter {
     }
 
     /**
-     * Opravi velikosti RIFF a data chunk podle vysledne velikosti. Predpoklada, ze data chunk je posledni chunk.
-     * @throws IOException pro problemech s vystupnim streamem
+     * Opraví velikosti RIFF a data chunk podle výsledné velikosti. Předpokládá, že data chunk je poslední chunk.
+     * @throws IOException při problémech s výstupním streamem
      */
     private void fixSizes() throws IOException {
         try (RandomAccessFile randomFile = new RandomAccessFile(outputFile, "rw")) {

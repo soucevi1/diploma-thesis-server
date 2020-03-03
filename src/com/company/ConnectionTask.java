@@ -1,5 +1,6 @@
-// Tento kod je soucast diplomove prace Vyuziti zranitelnosti Janus na operacnim systemu Android
-// Autor: Bc. Vit Soucek
+// Tento kód je součást diplomové práce "Využití zranitelnosti Janus na operačním systému Android"
+// Autor: Bc. Vít Souček (soucevi1@fit.cvut.cz)
+
 
 
 package com.company;
@@ -17,11 +18,11 @@ public class ConnectionTask implements Runnable{
     /**
      * Konstruktor.
      *
-     * @param conn Aktualni spojeni
-     * @param receivedData Data ke zpracovani
-     * @param receivedDataLength Delka dat
-     * @param active Je spojeni aktivni?
-     * @param sdl SourceDataLine pro pripad, ze se spojeni ma prehrat
+     * @param conn Aktualní spojení
+     * @param receivedData Data ke zpracování
+     * @param receivedDataLength Délka dat
+     * @param active Je spojení aktivní?
+     * @param sdl SourceDataLine pro případ, že se spojení má přehrát
      */
     public ConnectionTask(Connection conn, byte[] receivedData, int receivedDataLength, boolean active, SourceDataLine sdl){
         connection = conn;
@@ -32,14 +33,14 @@ public class ConnectionTask implements Runnable{
     }
 
     /**
-     * Rozhodne, jak zpracovat prijata data.
+     * Rozhodne, jak zpracovat přijatá data.
      */
     @Override
     public void run() {
         if (connection.isRecording()) {
-            toFile(data, dataLength, connection);
+            toFile(data, dataLength);
         } else {
-            toRingBuffer(data, dataLength, connection);
+            toRingBuffer(data, dataLength);
         }
         if (activeConnection) {
             toSpeaker(data, dataLength);
@@ -47,16 +48,16 @@ public class ConnectionTask implements Runnable{
     }
 
     /**
-     * Prehraje data v reproduktorech.
-     * Inspirovano otazkou "Save live audio streaming to wave file in Java" na StackOverflow
-     * a jeji prijatou odpovedi.
-     * autori: Sadegh Bakhshandeh Sajjad, dieter
-     * dostupne z: https://stackoverflow.com/questions/49811545/save-live-audio-streaming-to-wave-file-in-java
+     * Přehraje data v reproduktorech.
+     * Inspirováno otázkou "Save live audio streaming to wave file in Java" na StackOverflow.com
+     * a její přijatou odpovědí.
+     * autoři: Sadegh Bakhshandeh Sajjad, dieter
+     * dostupné z: https://stackoverflow.com/questions/49811545/save-live-audio-streaming-to-wave-file-in-java
      *
-     * @param soundbytes Data k prehravani.
-     * @param length Delka dat.
+     * @param soundbytes Data k přehrávání.
+     * @param length Délka dat.
      */
-    public void toSpeaker(byte[] soundbytes, int length) {
+    private void toSpeaker(byte[] soundbytes, int length) {
         synchronized (sourceDataLine) {
             try {
                 sourceDataLine.write(soundbytes, 0, length);
@@ -69,22 +70,20 @@ public class ConnectionTask implements Runnable{
 
 
     /**
-     * Zapise data do vystupniho souboru.
-     * @param data Data k zapsani
-     * @param dataLength Delka dat
-     * @param connection Spojeni, kteremu data patri
+     * Zapíše data do výstupního souboru.
+     * @param data Data k zapsání
+     * @param dataLength Délka dat
      */
-    private void toFile(byte[] data, int dataLength, Connection connection) {
+    private void toFile(byte[] data, int dataLength) {
         connection.writeToFile(data, dataLength);
     }
 
     /**
-     * Prida data do bufferu spojeni, kteremu data patri.
-     * @param data Data k zapsani
-     * @param dataLength Delka dat
-     * @param conn Spojeni, kteremu data patri
+     * Přidá data do bufferu spojení, od kterého data přišla.
+     * @param data Data k zapsání
+     * @param dataLength Délka dat
      */
-    private void toRingBuffer(byte[] data, int dataLength, Connection conn) {
-        conn.writeToBuffer(data, dataLength);
+    private void toRingBuffer(byte[] data, int dataLength) {
+        connection.writeToBuffer(data, dataLength);
     }
 }
