@@ -25,8 +25,8 @@ class Server {
     public static void main(String[] args) {
 
         parseArguments(args);
-        System.out.println("[-] Max memory to use per connection: " + maxMemorySize + " MB");
-        System.out.println("[-] Number of threads: " + threadCount);
+        System.out.println("[*] Max memory to use per connection: " + maxMemorySize + " MB");
+        System.out.println("[*] Number of threads: " + threadCount);
 
         thread = new ServerThread(maxMemorySize, threadCount);
         thread.start();
@@ -69,10 +69,10 @@ class Server {
                     showHelp();
                     break;
                 default:
-                    System.out.println("Unknown command: " + option);
+                    System.out.println("[X] Unknown command: " + option);
             }
         }
-        System.out.println("Exiting the application");
+        System.out.println("[*] Exiting the application");
         System.exit(0);
     }
 
@@ -82,14 +82,14 @@ class Server {
      */
     private static void parseArguments(String[] args) {
         if (args.length == 0) {
-            System.out.println("[-] Using default parameter values");
+            System.out.println("[*] Using default parameter values");
         } else if (args.length == 4) {
             for (int i = 0; i < args.length; i += 2) {
                 switch (args[i]) {
                     case "-t":
                         int tc = Integer.parseInt(args[i + 1]);
                         if (tc < 1) {
-                            System.out.println("Argument THREAD_CNT must be >= 1!");
+                            System.out.println("[X] Argument THREAD_CNT must be >= 1!");
                             showUsage();
                             System.exit(0);
                         }
@@ -98,7 +98,7 @@ class Server {
                     case "-m":
                         int mm = Integer.parseInt(args[i + 1]);
                         if (mm < 1) {
-                            System.out.println("Argument MAX_MEM must be >= 1");
+                            System.out.println("[X] Argument MAX_MEM must be >= 1");
                             showUsage();
                             System.exit(0);
                         }
@@ -109,13 +109,13 @@ class Server {
                         System.exit(0);
                         break;
                     default:
-                        System.out.println("Unknown argument");
+                        System.out.println("[X] Unknown argument");
                         showUsage();
                         System.exit(0);
                 }
             }
         } else {
-            System.out.println("Wrong number of arguments!");
+            System.out.println("[X] Wrong number of arguments!");
             showUsage();
             System.exit(0);
         }
@@ -144,7 +144,7 @@ class Server {
         if (connectionID.equals("a") || connectionID.equals("active")) {
             connectionID = thread.activeConnection.get();
             if (connectionID.equals("")) {
-                System.out.println("[-] No active connection, cannot stop recording it");
+                System.out.println("[X] No active connection, cannot stop recording it");
                 return;
             }
         }
@@ -156,7 +156,7 @@ class Server {
         if (toStop != null)
             toStop.stopRecording();
         else
-            System.out.println("[-] Connection with this ID not found");
+            System.out.println("[X] Connection with this ID not found");
     }
 
     /**
@@ -170,7 +170,7 @@ class Server {
         if (connectionID.equals("a") || connectionID.equals("active")) {
             connectionID = thread.activeConnection.get();
             if (connectionID.equals("")) {
-                System.out.println("[-] No active connection to record");
+                System.out.println("[X] No active connection to record");
                 return;
             }
         }
@@ -182,7 +182,7 @@ class Server {
         if (toRecord != null)
             toRecord.startRecording();
         else
-            System.out.println("[-] Connection with this ID not found");
+            System.out.println("[X] Connection with this ID not found");
     }
 
     /**
@@ -200,7 +200,7 @@ class Server {
     }
 
     /**
-     * Kontroluje, jestli ID spojení z parametru másprávný formát
+     * Kontroluje, jestli ID spojení z parametru má správný formát
      * <p>
      * Korektní ID spojení vždy má následující tvar:
      * IP:port
@@ -218,7 +218,7 @@ class Server {
         String[] split_conn = connectionID.split(":");
 
         if (split_conn.length != 2) {
-            System.out.println("Connection in wrong format: " + connectionID + ". Should be: IP:port");
+            System.out.println("[X] Connection in wrong format: " + connectionID + ". Should be: IP:port");
             return false;
         }
 
@@ -227,12 +227,12 @@ class Server {
 
         String pattern = "^((0|1\\d?\\d?|2[0-4]?\\d?|25[0-5]?|[3-9]\\d?)\\.){3}(0|1\\d?\\d?|2[0-4]?\\d?|25[0-5]?|[3-9]\\d?)$";
         if (!ip.matches(pattern)) {
-            System.out.println("IP address is not valid: " + ip);
+            System.out.println("[X] IP address is not valid: " + ip);
             return false;
         }
 
         if (port > 65535 || port < 0) {
-            System.out.println("Invalid port number: " + port);
+            System.out.println("[X] Invalid port number: " + port);
             return false;
         }
         return true;
@@ -248,10 +248,10 @@ class Server {
     private static void switchToConnection(String connectionID) {
         if (verifyConnectionFormat(connectionID)) {
             if (!thread.connections.containsKey(connectionID)) {
-                System.out.println("[-] The connection does not exist");
+                System.out.println("[X] The connection does not exist");
                 return;
             }
-            System.out.println("[-] Connection " + connectionID + " set as active. Replaced " + thread.activeConnection);
+            System.out.println("[*] Connection " + connectionID + " set as active. Replaced " + thread.activeConnection);
             thread.activeConnection.set(connectionID);
         }
     }

@@ -1,8 +1,6 @@
 // Tento kód je součást diplomové práce "Využití zranitelnosti Janus na operačním systému Android"
 // Autor: Bc. Vít Souček (soucevi1@fit.cvut.cz)
 
-
-
 package com.company;
 
 import javax.sound.sampled.SourceDataLine;
@@ -62,7 +60,7 @@ public class ConnectionTask implements Runnable{
             try {
                 sourceDataLine.write(soundbytes, 0, length);
             } catch (Exception e) {
-                System.out.println("Not working speakers...");
+                System.out.println("[X] Unable to play sounds on the data line");
                 e.printStackTrace();
             }
         }

@@ -27,8 +27,8 @@ public class ServerThread implements Runnable {
     private ExecutorService pool;
     ScheduledExecutorService timeoutChecker;
 
-    private int sampleRate = 44100;//16000;//8000;//44100;//44100;
-    private int bufferLen = 26880 * 20;//960*20;//512*2;
+    private int sampleRate = 44100;
+    private int bufferLen = 26880 * 20;
     private byte[] receiveData = new byte[bufferLen];
 
     private SourceDataLine sourceDataLine;
@@ -49,7 +49,7 @@ public class ServerThread implements Runnable {
         pool = Executors.newFixedThreadPool(threadCnt);
         activeConnection.set("");
 
-        System.out.println("[-] Buffers size set to: " + ringBufferSize + " B. (~ prerecorded " +
+        System.out.println("[*] Buffer size set to: " + ringBufferSize + " B. (~ prerecorded " +
                 ((ringBufferSize) / (2 * sampleRate)) / 60 + " minutes and " + ((ringBufferSize) / (2 * sampleRate)) % 60 +
                 " seconds per connection)");
     }
@@ -70,18 +70,6 @@ public class ServerThread implements Runnable {
             e.printStackTrace();
         }
 
-        /*
-         * Formula for lag = (byte_size/sample_rate)*2
-         * Byte size 9728 will produce ~ 0.45 seconds of lag. Voice slightly broken.
-         * Byte size 1400 will produce ~ 0.06 seconds of lag. Voice extremely broken.
-         * Byte size 4000 will produce ~ 0.18 seconds of lag. Voice slightly more broken then 9728.
-         *
-         * SAMPLE: 16000 both (android+server) + BUFFER SIZE: 1024
-         * 44100 + 1024
-         * 44100+862
-         * 8000+512
-         */
-
         initializeAudioPlayer();
 
         connections = new ConcurrentHashMap<>();
@@ -93,7 +81,7 @@ public class ServerThread implements Runnable {
             String senderID = getSenderID(packet);
 
             if (!connections.containsKey(senderID)) {
-                System.out.println("[-] New connection: " + senderID);
+                System.out.println("[+] New connection: " + senderID);
                 connections.put(senderID, new Connection(senderID, ringBufferSize));
             }
 
@@ -101,10 +89,10 @@ public class ServerThread implements Runnable {
 
             currentConnection.updateTimestamp();
 
-            // Pokud neexistuje aktivní spojení, bude aktivní toto aktualní
+            // Pokud neexistuje aktivní spojení, bude aktivní toto aktuální
             if (activeConnection.get().equals("")) {
                 activeConnection.set(senderID);
-                System.out.println("[-] Active connection: " + activeConnection);
+                System.out.println("[*] Active connection: " + activeConnection);
             }
 
             byte[] data = packet.getData();
@@ -113,7 +101,7 @@ public class ServerThread implements Runnable {
             pool.execute(task);
         }
 
-        System.out.println("[-] Thread exiting");
+        System.out.println("[*] Thread exiting");
         timeoutChecker.shutdown();
         pool.shutdown();
         sourceDataLine.drain();
@@ -159,14 +147,14 @@ public class ServerThread implements Runnable {
         if (connections.remove(connectionID) != null) {
             System.out.println("[-] Connection " + connectionID + " removed.");
         } else
-            System.out.println("[-] Connection does not exist");
+            System.out.println("[X] Connection does not exist");
     }
 
     /**
      * Spustí kód objektu v odděleném vlákně.
      */
     void start() {
-        System.out.println("[-] Starting the server thread.");
+        System.out.println("[*] Starting the server thread.");
         if (t == null) {
             t = new Thread(this);
             t.start();

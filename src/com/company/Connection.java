@@ -42,18 +42,18 @@ public class Connection implements Comparable<Connection> {
      */
     public void startRecording() {
         if (isRecording()) {
-            System.out.println("[-] This connection is already being recorded");
+            System.out.println("[X] This connection is already being recorded");
             return;
         }
 
-        System.out.println("[-] Recording the connection " + id);
+        System.out.println("[*] Recording the connection " + id);
 
         filename = createFilename();
 
         try {
             recordFile = new File(filename);
             if (!recordFile.createNewFile())
-                throw new FileAlreadyExistsException("File " + filename + " already exists.");
+                throw new FileAlreadyExistsException("[X] File " + filename + " already exists.");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -108,11 +108,11 @@ public class Connection implements Comparable<Connection> {
      */
     public void stopRecording() {
         if (!isRecording()) {
-            System.out.println("[-] Tried to stop recording a connection that is not being recorded");
+            System.out.println("[X] Tried to stop recording a connection that is not being recorded");
             return;
         }
         recording = false;
-        System.out.println("[-] File " + filename + " created.");
+        System.out.println("[*] File " + filename + " created.");
         try {
             wfWriter.close();
         } catch (IOException e) {
