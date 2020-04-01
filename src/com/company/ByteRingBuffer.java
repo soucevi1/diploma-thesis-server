@@ -1,129 +1,136 @@
 // Tento kód je součást diplomové práce "Využití zranitelnosti Janus na operačním systému Android"
 // Autor: Bc. Vít Souček (soucevi1@fit.cvut.cz)
-//
-// Použité zdroje:
-//     - ByteRingBuffer
-//         autor: Christian d'Heureuse, Inventec Informatik AG, Zurich, Switzerland
-//         dostupné z: http://www.source-code.biz/snippets/java/ByteRingBuffer/
-//         Použita kompletní třída ByteRingBuffer, do ní byla přidána vícevláknová synchronizace
 
 package com.company;
 
-public class ByteRingBuffer {
+import java.util.Arrays;
 
-    private byte[] rBuf;                      // data bufferu
-    private int rBufSize;                     // velikost bufferu
-    private int rBufPos;                      // pozice nejstarších dat v bufferu
-    private int rBufUsed;                     // počet použitých bytů v bufferu
+public class ByteRingBuffer {
+    private byte[] buffer;
+    private int start;
+    private int end;
+    private boolean empty;
     private final Object bufferLock = new Object();
 
+    public int size;
+
     /**
-     * Konstruktor
-     * @param size Velikost bufferu
+     * Konstrukror.
+     * Inicializuje buffer o velikosti bufSize.
+     * @param bufSize Velikost bufferu
      */
-    public ByteRingBuffer(int size) {
-        if (size <= 0) {
-            throw new IllegalArgumentException();
-        }
-        rBufSize = size;
-        rBuf = new byte[rBufSize];
+    public ByteRingBuffer(int bufSize) {
+        size = bufSize;
+        buffer = new byte[size];
+        start = 0;
+        end = 0;
+        empty = true;
     }
 
     /**
-     * Vrací velikost bufferu.
+     * Zapíše bytové pole data o délce length do bufferu.
+     * @param data Data k zápisu
+     * @param length Délka dat
      */
-    public int getSize() {
-        return rBufSize;
-    }
-
-    /**
-     * Zapíše data do bufferu
-     *
-     * @param buf Data k zápisu
-     * @param pos Pozice v bufferu, kam se má zapsat první prvek
-     * @param len  Délka dat k zápisu
-     * @return Počet zapsaných bytů
-     * Zaručeno <code>min(len, getFree())</code>
-     */
-    public int write(byte[] buf, int pos, int len) {
+    public void write(byte[] data, int length) {
         synchronized (bufferLock) {
-            if (len < 0) {
-                throw new IllegalArgumentException();
+            boolean startCrossed = false;
+
+            if (length <= 0) {
+                return;
             }
-            if (rBufUsed == 0) {
-                rBufPos = 0;
+
+            // Všechna data se do bufferu nevejdou -- zapíše se pouze "size" nejnovějších
+            if (length > size) {
+                data = Arrays.copyOfRange(data, length - size, length);
+                length = size;
             }
-            int p1 = rBufPos + rBufUsed;
-            if (p1 < rBufSize) {
-                int trLen1 = Math.min(len, rBufSize - p1);
-                append(buf, pos, trLen1);
-                int trLen2 = Math.min(len - trLen1, rBufPos);
-                append(buf, pos + trLen1, trLen2);
-                return trLen1 + trLen2;
+
+            // Data se vejdou do bufferu v jednom kuse
+            if (size - end >= length) {
+
+                System.arraycopy(data, 0, buffer, end, length);
+
+                // Pokud end byl před start, ale po zápisu posune za něj,
+                // buffer se úplně naplní a start a end se musí srovnat
+                if ((start >= end) && (end + length > start) && !empty) {
+                    startCrossed = true;
+                }
+
+                end = (end + length) % size;
+
+                if (startCrossed) {
+                    start = end;
+                }
+                empty = false;
+
+                // Data se musí zapsat po částech
             } else {
-                int trLen = Math.min(len, rBufSize - rBufUsed);
-                append(buf, pos, trLen);
-                return trLen;
+
+                // Start se na konci musí posunout, pokud
+                // byl překročen endem.
+                if (start > end || (start == end && !empty)) {
+                    startCrossed = true;
+                }
+
+                // Zapsat od end do konce
+                System.arraycopy(data, 0, buffer, end, size - end);
+
+                empty = false;
+
+                // Zapsat zbytek dat na začátek bufferu
+                System.arraycopy(data, size - end, buffer, 0, length - (size - end));
+
+                end = length - (size - end);
+
+                if ((start < end) || startCrossed) {
+                    start = end;
+                }
+
             }
         }
     }
 
-    private void append(byte[] buf, int pos, int len) {
-        if (len == 0) {
-            return;
-        }
-        if (len < 0) {
-            throw new AssertionError();
-        }
-        int p = clip(rBufPos + rBufUsed);
-        System.arraycopy(buf, pos, rBuf, p, len);
-        rBufUsed += len;
-    }
-
     /**
-     * Přečte data z bufferu.
-     * @param len Požadovaný počet přečtených bytu
-     * @param buf Buffer pro uložení přečtených dat
-     * @param pos Pozice, odkud přečíst první byte
-     * @return Počet přečtených bytů.
-     * Zaručeno <code>min(len, getUsed())</code>.
+     * Nakopíruje položky z bufferu do pole out.
+     * Nejstarší položka z bufferu jde na začátek pole out,
+     * nejnovější na konec.
+     * @param out Výstupní pole
+     * @return Počet zkopírovaných bytů
      */
-    public int read(byte[] buf, int pos, int len) {
+    public int readUsed(byte[] out) {
         synchronized (bufferLock) {
-            if (len < 0) {
-                throw new IllegalArgumentException();
+            if (empty) {
+                return 0;
             }
-            int trLen1 = Math.min(len, Math.min(rBufUsed, rBufSize - rBufPos));
-            remove(buf, pos, trLen1);
-            int trLen2 = Math.min(len - trLen1, rBufUsed);
-            remove(buf, pos + trLen1, trLen2);
-            return trLen1 + trLen2;
+
+            int bytesRead;
+
+            // Data se přečtou v jednom kuse
+            if (start < end) {
+                System.arraycopy(buffer, start, out, 0, end - start);
+                bytesRead = end - start;
+
+            // Data se přečtou ve dvou částech
+            } else {
+                int destPos = 0;
+
+                // Přečíst od start do konce
+                if (start < size) {
+                    System.arraycopy(buffer, start, out, destPos, size - start);
+                    destPos = size - start;
+                }
+
+                // Přečíst od začátku do end
+                System.arraycopy(buffer, 0, out, destPos, end);
+                bytesRead = destPos + end;
+            }
+
+            // Buffer je teď prázdný
+            start = 0;
+            end = 0;
+            empty = true;
+            return bytesRead;
         }
     }
-
-    /**
-     * Přečte data z bufferu.
-     *
-     * <p>Zjednodušení pro: <code>read(buf, 0, buf.length)</code>
-     */
-    public int read(byte[] buf) {
-        return read(buf, 0, buf.length);
-    }
-
-    private void remove(byte[] buf, int pos, int len) {
-        if (len == 0) {
-            return;
-        }
-        if (len < 0) {
-            throw new AssertionError();
-        }
-        System.arraycopy(rBuf, rBufPos, buf, pos, len);
-        rBufPos = clip(rBufPos + len);
-        rBufUsed -= len;
-    }
-
-    private int clip(int p) {
-        return (p < rBufSize) ? p : (p - rBufSize);
-    }
-
 }

@@ -81,8 +81,8 @@ public class ServerThread implements Runnable {
             String senderID = getSenderID(packet);
 
             if (!connections.containsKey(senderID)) {
-                System.out.println("[+] New connection: " + senderID);
                 connections.put(senderID, new Connection(senderID, ringBufferSize));
+                System.out.println("[+] New connection: " + senderID);
             }
 
             Connection currentConnection = connections.get(senderID);
@@ -97,7 +97,7 @@ public class ServerThread implements Runnable {
 
             byte[] data = packet.getData();
             int dataLength = packet.getLength();
-            Runnable task = new ConnectionTask(currentConnection, data, dataLength, senderID.equals(activeConnection.get()), sourceDataLine);
+            Runnable task = new ConnectionTask(currentConnection, data.clone(), dataLength, senderID.equals(activeConnection.get()), sourceDataLine);
             pool.execute(task);
         }
 

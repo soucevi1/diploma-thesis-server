@@ -8,6 +8,7 @@ import java.nio.file.FileAlreadyExistsException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+
 public class Connection implements Comparable<Connection> {
 
     private volatile boolean recording = false;
@@ -82,8 +83,8 @@ public class Connection implements Comparable<Connection> {
     private void writeBufferToFile() {
         byte[] data;
         int read;
-        data = new byte[buffer.getSize()];
-        read = buffer.read(data);
+        data = new byte[buffer.size];
+        read = buffer.readUsed(data);
 
         try {
             wfWriter.write(data, 0, read);
@@ -127,7 +128,7 @@ public class Connection implements Comparable<Connection> {
      * @param dataLength Délka dat.
      */
     public void writeToBuffer(byte[] data, int dataLength) {
-        buffer.write(data, 0, dataLength);
+        buffer.write(data, dataLength);
     }
 
     /**

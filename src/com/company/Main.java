@@ -10,8 +10,8 @@ import java.util.Scanner;
 
 class Server {
     private static ServerThread thread;
-    private static int maxMemorySize = 100;
-    private static int threadCount = 8;
+    private static int maxMemorySize = 10;
+    private static int threadCount = 2;
 
     /**
      * Vstupní bod programu.
@@ -293,7 +293,7 @@ class Server {
         System.out.println("                Example: r 192.168.1.100:12345");
         System.out.println();
         System.out.println("r <CONNECTION>: Start recording the connection");
-        System.out.println("   The recording will be saved in current directory as <connection>___<timestamp>.wav");
+        System.out.println("   The recording will be saved in current directory as <connection>_<timestamp>.wav");
         System.out.println();
         System.out.println("c <CONNECTION>: Stop recording the active connection");
         System.out.println();
