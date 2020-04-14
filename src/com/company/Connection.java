@@ -26,7 +26,7 @@ public class Connection implements Comparable<Connection> {
      * Konstruktor.
      * Inicializuje ID, vytvoří buffer a zaznamená, kdy bylo spojení vytvořeno.
      *
-     * @param connId String ve formátu "IP:port", který spojení identifikuje.
+     * @param connId     String ve formátu "IP:port", který spojení identifikuje.
      * @param bufferSize Velikost bufferu na přednahrávání
      */
     public Connection(String connId, int bufferSize) {
@@ -84,7 +84,7 @@ public class Connection implements Comparable<Connection> {
         byte[] data;
         int read;
         data = new byte[buffer.size];
-        read = buffer.readUsed(data);
+        read = buffer.read(data);
 
         try {
             wfWriter.write(data, 0, read);
@@ -124,7 +124,7 @@ public class Connection implements Comparable<Connection> {
     /**
      * Zapíše přijatá data do bufferu.
      *
-     * @param data Přijatá data.
+     * @param data       Přijatá data.
      * @param dataLength Délka dat.
      */
     public void writeToBuffer(byte[] data, int dataLength) {
@@ -133,10 +133,11 @@ public class Connection implements Comparable<Connection> {
 
     /**
      * Zapíše přijatá data do souboru.
-     * @param data Přijatá data.
+     *
+     * @param data       Přijatá data.
      * @param dataLength Délka přijatých dat.
      */
-    public void writeToFile(byte[] data, int dataLength){
+    public void writeToFile(byte[] data, int dataLength) {
         try {
             wfWriter.write(data, 0, dataLength);
         } catch (IOException e) {

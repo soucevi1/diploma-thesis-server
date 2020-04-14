@@ -1,11 +1,14 @@
 // Tento kód je součást diplomové práce "Využití zranitelnosti Janus na operačním systému Android"
 // Autor: Bc. Vít Souček (soucevi1@fit.cvut.cz)
+//
+// Zdroje:
+//    - zmíněné v dokumentačních komentářích
 
 package com.company;
 
 import javax.sound.sampled.SourceDataLine;
 
-public class ConnectionTask implements Runnable{
+public class ConnectionTask implements Runnable {
 
     private Connection connection;
     private byte[] data;
@@ -16,13 +19,13 @@ public class ConnectionTask implements Runnable{
     /**
      * Konstruktor.
      *
-     * @param conn Aktualní spojení
-     * @param receivedData Data ke zpracování
+     * @param conn               Aktuální spojení
+     * @param receivedData       Data ke zpracování
      * @param receivedDataLength Délka dat
-     * @param active Je spojení aktivní?
-     * @param sdl SourceDataLine pro případ, že se spojení má přehrát
+     * @param active             Je spojení aktivní?
+     * @param sdl                SourceDataLine pro případ, že se spojení má přehrát
      */
-    public ConnectionTask(Connection conn, byte[] receivedData, int receivedDataLength, boolean active, SourceDataLine sdl){
+    public ConnectionTask(Connection conn, byte[] receivedData, int receivedDataLength, boolean active, SourceDataLine sdl) {
         connection = conn;
         data = receivedData;
         dataLength = receivedDataLength;
@@ -53,7 +56,7 @@ public class ConnectionTask implements Runnable{
      * dostupné z: https://stackoverflow.com/questions/49811545/save-live-audio-streaming-to-wave-file-in-java
      *
      * @param soundbytes Data k přehrávání.
-     * @param length Délka dat.
+     * @param length     Délka dat.
      */
     private void toSpeaker(byte[] soundbytes, int length) {
         synchronized (sourceDataLine) {
@@ -69,7 +72,8 @@ public class ConnectionTask implements Runnable{
 
     /**
      * Zapíše data do výstupního souboru.
-     * @param data Data k zapsání
+     *
+     * @param data       Data k zapsání
      * @param dataLength Délka dat
      */
     private void toFile(byte[] data, int dataLength) {
@@ -78,7 +82,8 @@ public class ConnectionTask implements Runnable{
 
     /**
      * Přidá data do bufferu spojení, od kterého data přišla.
-     * @param data Data k zapsání
+     *
+     * @param data       Data k zapsání
      * @param dataLength Délka dat
      */
     private void toRingBuffer(byte[] data, int dataLength) {

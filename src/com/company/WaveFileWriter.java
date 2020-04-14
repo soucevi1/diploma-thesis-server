@@ -41,6 +41,7 @@ public class WaveFileWriter {
 
     /**
      * Zavře výstupní stream.
+     *
      * @throws IOException pokud je problém se streamem
      */
     public void close() throws IOException {
@@ -51,9 +52,10 @@ public class WaveFileWriter {
     /**
      * Zapíše bytový buffer do výstupního streamu.
      * Nejprve zkontroluje, jestli byla zapsána WAVE hlavička.
+     *
      * @param buffer Data k zapsání.
-     * @param start Počáteční pozice v bufferu.
-     * @param count Počet bytu k zápisu.
+     * @param start  Počáteční pozice v bufferu.
+     * @param count  Počet bytu k zápisu.
      * @throws IOException při problému s výstupním streamem.
      */
     public void write(byte[] buffer, int start, int count) throws IOException {
@@ -69,6 +71,7 @@ public class WaveFileWriter {
 
     /**
      * Zapíše spodních 8 bitů parametru do streamu
+     *
      * @param b Byte (int) k zápisu do streamu
      * @throws IOException při problémech se streamem
      */
@@ -79,6 +82,7 @@ public class WaveFileWriter {
 
     /**
      * Zapíše 32bitový int ve formátu Little Endian do výstupního streamu.
+     *
      * @param n Int k zápisu
      * @throws IOException při problémech se streamem
      */
@@ -91,6 +95,7 @@ public class WaveFileWriter {
 
     /**
      * Zapíše 16bitový short ve formátu Little Endian do výstupního streamu.
+     *
      * @param n Short k zápisu
      * @throws IOException při problémech s výstupním streamem
      */
@@ -101,6 +106,7 @@ public class WaveFileWriter {
 
     /**
      * Zapíše WAVE header pro PCM data.
+     *
      * @throws IOException při problémech s výstupním streamem
      */
     private void writeHeader() throws IOException {
@@ -113,6 +119,7 @@ public class WaveFileWriter {
 
     /**
      * Zapíše 'RIFF' hlavičku a 'WAVE' ID do souboru WAV.
+     *
      * @throws IOException při problémech s výstupním streamem
      */
     private void writeRiffHeader() throws IOException {
@@ -130,6 +137,7 @@ public class WaveFileWriter {
 
     /**
      * Zapíše 'fmt' chunk do souboru WAV
+     *
      * @throws IOException při problémech s výstupním streamem
      */
     public void writeFormatChunk() throws IOException {
@@ -167,6 +175,7 @@ public class WaveFileWriter {
 
     /**
      * Opraví velikosti RIFF a data chunk podle výsledné velikosti. Předpokládá, že data chunk je poslední chunk.
+     *
      * @throws IOException při problémech s výstupním streamem
      */
     private void fixSizes() throws IOException {

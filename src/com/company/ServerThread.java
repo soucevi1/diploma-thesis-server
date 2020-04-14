@@ -2,7 +2,7 @@
 // Autor: Bc. Vít Souček (soucevi1@fit.cvut.cz)
 //
 // Použité zdroje:
-//    - zmíněné přímo v dokumentačních komentářích
+//    - zmíněné v dokumentačních komentářích
 
 
 package com.company;
@@ -29,13 +29,15 @@ public class ServerThread implements Runnable {
 
     private int sampleRate = 44100;
     private int bufferLen = 26880 * 20;
-    private byte[] receiveData = new byte[bufferLen];
 
     private SourceDataLine sourceDataLine;
 
     private DatagramSocket serverSocket;
 
     private int ringBufferSize;
+    private int maxConnections;
+
+    private Map<String, Long> blacklist;
 
     /**
      * Konstruktor.
@@ -43,15 +45,18 @@ public class ServerThread implements Runnable {
      *
      * @param maxMemory Maximální velikost bufferu (v MB) pro přednahrávání spojení.
      * @param threadCnt Počet vláken pro zpracovávání přijatých dat.
+     * @param maxConns  Maximální počet spojení, která jsou zároveň akceptována.
      */
-    public ServerThread(int maxMemory, int threadCnt) {
+    public ServerThread(int maxMemory, int threadCnt, int maxConns) {
+        maxConnections = maxConns;
         ringBufferSize = maxMemory * 1000000;
         pool = Executors.newFixedThreadPool(threadCnt);
         activeConnection.set("");
 
-        System.out.println("[*] Buffer size set to: " + ringBufferSize + " B. (~ prerecorded " +
+        System.out.println("[*] Buffer size set to: " + ringBufferSize + " B.");
+        System.out.println("    ~ prerecorded " +
                 ((ringBufferSize) / (2 * sampleRate)) / 60 + " minutes and " + ((ringBufferSize) / (2 * sampleRate)) % 60 +
-                " seconds per connection)");
+                " seconds per connection");
     }
 
     /**
@@ -73,6 +78,7 @@ public class ServerThread implements Runnable {
         initializeAudioPlayer();
 
         connections = new ConcurrentHashMap<>();
+        blacklist = new ConcurrentHashMap<>();
 
         startTimeoutChecker();
 
@@ -81,8 +87,10 @@ public class ServerThread implements Runnable {
             String senderID = getSenderID(packet);
 
             if (!connections.containsKey(senderID)) {
-                connections.put(senderID, new Connection(senderID, ringBufferSize));
-                System.out.println("[+] New connection: " + senderID);
+                boolean added = addConnectionToList(senderID);
+                if (!added) {
+                    continue;
+                }
             }
 
             Connection currentConnection = connections.get(senderID);
@@ -109,6 +117,40 @@ public class ServerThread implements Runnable {
     }
 
     /**
+     * Pokud je v seznamu místo (není naplněn limit spojení)
+     * a zároveň spojení není vymazáno, přidá spojení do seznamu.
+     *
+     * @param connID Identifikátor spojení
+     * @return True pokud spojení bylo přidáno
+     */
+    private boolean addConnectionToList(String connID) {
+        if ((connections.size() < maxConnections || maxConnections == -1) && !blacklisted(connID)) {
+            connections.put(connID, new Connection(connID, ringBufferSize));
+            System.out.println("[+] New connection: " + connID);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Zkontroluje, zda bylo spojení connID ručně odstraněno a
+     * pokud ano, zda od té doby uběhlo méně času než minuta.
+     * Pokud ano, spojení se znovu nepřidá do seznamu.
+     *
+     * @param connID Spojení ke kontrole
+     * @return True pokud se spojení nemá přidávat do seznamu
+     */
+    private boolean blacklisted(String connID) {
+        if (blacklist.containsKey(connID)) {
+            if (System.currentTimeMillis() - blacklist.get(connID) < 60000) {
+                return true;
+            }
+            blacklist.remove(connID);
+        }
+        return false;
+    }
+
+    /**
      * Kontrola, jestli nějaké spojení není hluché.
      * Každé 3 vteřiny se zkontroluje, jestli od některého ze spojení
      * nepřestala po nějakou dobu chodit data. Pokud ano, spojení je odstraněno.
@@ -123,7 +165,7 @@ public class ServerThread implements Runnable {
             for (String connID : connections.keySet()) {
                 Connection current = connections.get(connID);
                 if (System.currentTimeMillis() - current.dataLastReceived > connectionTimeout) {
-                    removeConnection(connID);
+                    removeConnection(connID, false);
                 }
             }
         }, 0, 3, TimeUnit.SECONDS);
@@ -132,10 +174,12 @@ public class ServerThread implements Runnable {
     /**
      * Odstraní spojení ze seznamu.
      * Pokud se spojení zrovna nahrává, je nahrávání zastaveno.
+     * Odstraněné spojení se přidá na seznam, aby po určitou dobu
+     * nemohlo být přidáno automaticky.
      *
      * @param connectionID ID spojení, které se má odstranit.
      */
-    public void removeConnection(String connectionID) {
+    public void removeConnection(String connectionID, boolean manual) {
         if (connectionID.equals(activeConnection.get())) {
             activeConnection.set("");
         }
@@ -146,6 +190,9 @@ public class ServerThread implements Runnable {
 
         if (connections.remove(connectionID) != null) {
             System.out.println("[-] Connection " + connectionID + " removed.");
+            if (manual) {
+                blacklist.put(connectionID, System.currentTimeMillis());
+            }
         } else
             System.out.println("[X] Connection does not exist");
     }
@@ -167,6 +214,7 @@ public class ServerThread implements Runnable {
      * @return DatagramPacket s daty.
      */
     private DatagramPacket receivePacket() {
+        byte[] receiveData = new byte[bufferLen];
         DatagramPacket packet = new DatagramPacket(receiveData, receiveData.length);
         try {
             serverSocket.receive(packet);

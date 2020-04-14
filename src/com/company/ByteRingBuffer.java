@@ -17,6 +17,7 @@ public class ByteRingBuffer {
     /**
      * Konstrukror.
      * Inicializuje buffer o velikosti bufSize.
+     *
      * @param bufSize Velikost bufferu
      */
     public ByteRingBuffer(int bufSize) {
@@ -29,7 +30,8 @@ public class ByteRingBuffer {
 
     /**
      * Zapíše bytové pole data o délce length do bufferu.
-     * @param data Data k zápisu
+     *
+     * @param data   Data k zápisu
      * @param length Délka dat
      */
     public void write(byte[] data, int length) {
@@ -95,10 +97,11 @@ public class ByteRingBuffer {
      * Nakopíruje položky z bufferu do pole out.
      * Nejstarší položka z bufferu jde na začátek pole out,
      * nejnovější na konec.
+     *
      * @param out Výstupní pole
      * @return Počet zkopírovaných bytů
      */
-    public int readUsed(byte[] out) {
+    public int read(byte[] out) {
         synchronized (bufferLock) {
             if (empty) {
                 return 0;
@@ -111,7 +114,7 @@ public class ByteRingBuffer {
                 System.arraycopy(buffer, start, out, 0, end - start);
                 bytesRead = end - start;
 
-            // Data se přečtou ve dvou částech
+                // Data se přečtou ve dvou částech
             } else {
                 int destPos = 0;
 
