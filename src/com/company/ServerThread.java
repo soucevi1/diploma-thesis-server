@@ -23,7 +23,7 @@ public class ServerThread implements Runnable {
     public Map<String, Connection> connections;
     private final int connectionTimeout = 2000; // 2 sekundy
 
-    private Thread t;
+    public Thread t;
     private ExecutorService pool;
     ScheduledExecutorService timeoutChecker;
 
@@ -109,11 +109,18 @@ public class ServerThread implements Runnable {
             pool.execute(task);
         }
 
-        System.out.println("[*] Thread exiting");
         timeoutChecker.shutdown();
         pool.shutdown();
         sourceDataLine.drain();
         sourceDataLine.close();
+
+        for(String connID : connections.keySet()){
+            if(connections.get(connID).isRecording()){
+                connections.get(connID).stopRecording();
+            }
+        }
+
+        System.out.println("[*] Thread exiting");
     }
 
     /**

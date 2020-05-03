@@ -75,6 +75,13 @@ class Server {
                     System.out.println("[X] Unknown command: " + option);
             }
         }
+        if(!thread.connections.isEmpty()) {
+            try {
+                thread.t.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
         System.out.println("[*] Exiting the application");
         System.exit(0);
     }
